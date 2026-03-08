@@ -11,19 +11,16 @@ using Serilog;
 
 namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
 {
-    [Command(Name = "download-apple-playlist", Description = "Downloads all tracks from an Apple Music library playlist via Soulseek")]
+    [Command(Name = "download-apple-playlist", Description = "Downloads all tracks from an Apple Music library playlist via Soulseek, using an exported library XML file")]
     class DownloadAppleMusicPlaylistCommand : SpotSeekCommandBase
     {
-        [Option(CommandOptionType.SingleValue, ShortName = "d", LongName = "developertoken", Description = "Apple Music developer token (JWT)", ValueName = "developer token", ShowInHelpText = true)]
-        public string AppleMusicDeveloperToken { get; set; }
+        [Option(CommandOptionType.SingleValue, ShortName = "x", LongName = "library", Description = "Path to the Apple Music library XML file (export via Music.app → File → Library → Export Library...)", ValueName = "library xml path", ShowInHelpText = true)]
+        public string LibraryXmlPath { get; set; }
 
-        [Option(CommandOptionType.SingleValue, ShortName = "m", LongName = "usertoken", Description = "Apple Music user token (from MusicKit)", ValueName = "user token", ShowInHelpText = true)]
-        public string AppleMusicUserToken { get; set; }
-
-        [Option(CommandOptionType.SingleValue, ShortName = "l", LongName = "playlistid", Description = "Apple Music library playlist ID (e.g. p.xxxxx)", ValueName = "playlist id", ShowInHelpText = true)]
+        [Option(CommandOptionType.SingleValue, ShortName = "l", LongName = "playlistid", Description = "Playlist Persistent ID from the XML (found in the file)", ValueName = "playlist id", ShowInHelpText = true)]
         public string PlaylistId { get; set; }
 
-        [Option(CommandOptionType.SingleValue, ShortName = "n", LongName = "playlistname", Description = "Apple Music library playlist name", ValueName = "playlist name", ShowInHelpText = true)]
+        [Option(CommandOptionType.SingleValue, ShortName = "n", LongName = "playlistname", Description = "Playlist name exactly as shown in Music.app", ValueName = "playlist name", ShowInHelpText = true)]
         public string PlaylistName { get; set; }
 
         [Option(CommandOptionType.SingleValue, ShortName = "u", LongName = "ssusername", Description = "Soulseek login username", ValueName = "login username", ShowInHelpText = true)]
@@ -31,12 +28,6 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
 
         [Option(CommandOptionType.SingleValue, ShortName = "p", LongName = "sspassword", Description = "Soulseek login password", ValueName = "login password", ShowInHelpText = true)]
         public string SSPassword { get; set; }
-
-        [Option(CommandOptionType.NoValue, ShortName = "g", LongName = "id3tags", Description = "Set ID3 tags after download", ValueName = "set id3 tags", ShowInHelpText = true)]
-        public bool SetId3Tags { get; set; }
-
-        [Option(CommandOptionType.SingleValue, ShortName = "k", LongName = "keyformat", Description = "Desired format for id3tag 'InitialKey'", ValueName = "key format", ShowInHelpText = true)]
-        public string DesiredKeyFormat { get; set; } = MusicalKeyFormat.OpenKey.Value;
 
         [Option(CommandOptionType.NoValue, ShortName = "s", LongName = "skip-results", Description = "Skip tracks already present in results folder", ValueName = "skip present results", ShowInHelpText = true)]
         public bool SkipPresentResults { get; }
@@ -56,24 +47,19 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
 
         protected override async Task<int> OnExecute(CommandLineApplication app)
         {
-            if (string.IsNullOrEmpty(AppleMusicDeveloperToken))
+            if (string.IsNullOrEmpty(LibraryXmlPath))
             {
-                AppleMusicDeveloperToken = Prompt.GetString("Apple Music developer token:", AppleMusicDeveloperToken);
-            }
-
-            if (string.IsNullOrEmpty(AppleMusicUserToken))
-            {
-                AppleMusicUserToken = Prompt.GetString("Apple Music user token:", AppleMusicUserToken);
+                LibraryXmlPath = Prompt.GetString("Path to Apple Music library XML file:", LibraryXmlPath);
             }
 
             if (string.IsNullOrEmpty(PlaylistId) && string.IsNullOrEmpty(PlaylistName))
             {
-                PlaylistId = Prompt.GetString("Apple Music playlist ID (leave blank to use name):", PlaylistId);
+                PlaylistId = Prompt.GetString("Playlist Persistent ID (leave blank to use name):", PlaylistId);
             }
 
             if (string.IsNullOrEmpty(PlaylistId) && string.IsNullOrEmpty(PlaylistName))
             {
-                PlaylistName = Prompt.GetString("Apple Music playlist name:", PlaylistName);
+                PlaylistName = Prompt.GetString("Playlist name:", PlaylistName);
             }
 
             if (string.IsNullOrEmpty(SSUsername))
@@ -105,19 +91,15 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
 
                 await File.WriteAllTextAsync($"{ProfileFolder}{Profile}", JsonSerializer.Serialize(userProfile), Encoding.UTF8);
 
-                Log.Information($"SetId3Tags is set to '{SetId3Tags}'");
                 Log.Information($"AllowFlac is set to '{AllowFlac}'");
                 Log.Information($"SkipPresentResults is set to '{SkipPresentResults}'");
 
                 await _downloadService.DownloadAppleMusicPlaylistAsync(
-                    AppleMusicDeveloperToken,
-                    AppleMusicUserToken,
+                    LibraryXmlPath,
                     PlaylistId,
                     PlaylistName,
                     SSUsername,
                     SSPassword,
-                    SetId3Tags,
-                    MusicalKeyFormat.from(DesiredKeyFormat),
                     options =>
                     {
                         options.AllowFlac = AllowFlac;

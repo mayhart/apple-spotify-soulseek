@@ -1,25 +1,14 @@
-using System.Text.Json.Serialization;
-
 namespace Spotify.Slsk.Integration.Models.AppleMusic
 {
     public class AppleMusicPlaylist
     {
-        [JsonPropertyName("id")]
+        /// <summary>Playlist Persistent ID from the library XML.</summary>
         public string? Id { get; set; }
 
-        [JsonPropertyName("type")]
-        public string? Type { get; set; }
+        /// <summary>Playlist name.</summary>
+        public string? Name { get; set; }
 
-        [JsonPropertyName("attributes")]
-        public AppleMusicPlaylistAttributes? Attributes { get; set; }
-    }
-
-    public class AppleMusicPlaylistsResponse
-    {
-        [JsonPropertyName("data")]
-        public List<AppleMusicPlaylist>? Data { get; set; }
-
-        [JsonPropertyName("next")]
-        public string? Next { get; set; }
+        /// <summary>Tracks belonging to this playlist.</summary>
+        public List<AppleMusicTrack> Tracks { get; set; } = new();
     }
 }

@@ -1,114 +1,163 @@
 using Spotify.Slsk.Integration.Models.AppleMusic;
-using System.Net;
-using System.Net.Http.Headers;
-using System.Text.Json;
-using static Spotify.Slsk.Integration.Constants.Constants;
+using System.Xml;
 
 namespace Spotify.Slsk.Integration.Clients.AppleMusic
 {
-    public class AppleMusicClient
+    /// <summary>
+    /// Parses an Apple Music / iTunes library XML file exported via
+    /// Music.app → File → Library → Export Library...
+    /// (or enabled automatically at ~/Music/Music/Music Library.xml)
+    /// </summary>
+    public class AppleMusicLibraryClient
     {
-        private HttpClient HttpClient { get; } = new();
+        private readonly XmlDocument _doc;
+
+        public AppleMusicLibraryClient(string libraryXmlPath)
+        {
+            if (!File.Exists(libraryXmlPath))
+            {
+                throw new FileNotFoundException($"Apple Music library XML file not found: '{libraryXmlPath}'");
+            }
+
+            _doc = new XmlDocument();
+            _doc.Load(libraryXmlPath);
+        }
 
         /// <summary>
-        /// Gets all playlists from the user's Apple Music library.
+        /// Returns all playlists defined in the library XML.
         /// </summary>
-        /// <param name="developerToken">Apple Music developer token (JWT)</param>
-        /// <param name="userToken">Apple Music user token obtained via MusicKit</param>
-        public async Task<List<AppleMusicPlaylist>> GetAllLibraryPlaylistsAsync(string developerToken, string userToken)
+        public List<AppleMusicPlaylist> GetAllPlaylists()
         {
+            // Tracks dictionary: Track ID -> track data
+            Dictionary<int, AppleMusicTrack> tracksById = ParseTracks();
+
+            // Playlists array
+            XmlNode? playlistsArray = SelectPlaylistsArray();
+            if (playlistsArray == null)
+            {
+                return new List<AppleMusicPlaylist>();
+            }
+
             List<AppleMusicPlaylist> result = new();
-            string? nextUrl = $"{APPLE_MUSIC_BASE_URL}me/library/playlists?limit=100";
-
-            while (nextUrl != null)
+            foreach (XmlNode playlistDict in playlistsArray.ChildNodes)
             {
-                HttpRequestMessage request = new(HttpMethod.Get, nextUrl);
-                HttpResponseMessage response = await GetResponseAsync(request, developerToken, userToken);
+                Dictionary<string, XmlNode> fields = ParseDict(playlistDict);
 
-                AppleMusicPlaylistsResponse page = await DeserializeResponseAsync<AppleMusicPlaylistsResponse>(response);
-                if (page.Data != null)
+                if (!fields.TryGetValue("Name", out XmlNode? nameNode))
                 {
-                    result.AddRange(page.Data);
+                    continue;
                 }
 
-                nextUrl = page.Next != null ? $"https://api.music.apple.com{page.Next}" : null;
+                string name = nameNode.InnerText;
+                string playlistId = fields.TryGetValue("Playlist Persistent ID", out XmlNode? idNode)
+                    ? idNode.InnerText
+                    : name;
+
+                List<AppleMusicTrack> tracks = new();
+                if (fields.TryGetValue("Playlist Items", out XmlNode? itemsNode))
+                {
+                    foreach (XmlNode itemDict in itemsNode.ChildNodes)
+                    {
+                        Dictionary<string, XmlNode> itemFields = ParseDict(itemDict);
+                        if (itemFields.TryGetValue("Track ID", out XmlNode? trackIdNode)
+                            && int.TryParse(trackIdNode.InnerText, out int trackId)
+                            && tracksById.TryGetValue(trackId, out AppleMusicTrack? track))
+                        {
+                            tracks.Add(track);
+                        }
+                    }
+                }
+
+                result.Add(new AppleMusicPlaylist
+                {
+                    Id = playlistId,
+                    Name = name,
+                    Tracks = tracks
+                });
             }
 
             return result;
         }
 
         /// <summary>
-        /// Gets a library playlist by name.
+        /// Returns a playlist by name (case-sensitive).
         /// </summary>
-        public async Task<AppleMusicPlaylist> GetLibraryPlaylistByNameAsync(string playlistName, string developerToken, string userToken)
+        public AppleMusicPlaylist GetPlaylistByName(string playlistName)
         {
-            List<AppleMusicPlaylist> playlists = await GetAllLibraryPlaylistsAsync(developerToken, userToken);
-            AppleMusicPlaylist? playlist = playlists.FirstOrDefault(p => p.Attributes?.Name == playlistName);
+            AppleMusicPlaylist? playlist = GetAllPlaylists().FirstOrDefault(p => p.Name == playlistName);
             return playlist
-                ?? throw new Exception($"Apple Music playlist with name '{playlistName}' not found in library");
+                ?? throw new Exception($"Playlist '{playlistName}' not found in the library XML");
         }
 
         /// <summary>
-        /// Gets all tracks from a library playlist.
+        /// Returns a playlist by its Persistent ID.
         /// </summary>
-        /// <param name="playlistId">Apple Music library playlist ID (e.g. p.xxxxx)</param>
-        /// <param name="developerToken">Apple Music developer token (JWT)</param>
-        /// <param name="userToken">Apple Music user token obtained via MusicKit</param>
-        public async Task<List<AppleMusicTrack>> GetAllLibraryPlaylistTracksAsync(string playlistId, string developerToken, string userToken)
+        public AppleMusicPlaylist GetPlaylistById(string playlistId)
         {
-            List<AppleMusicTrack> result = new();
-            string? nextUrl = $"{APPLE_MUSIC_BASE_URL}me/library/playlists/{playlistId}/tracks?limit=100";
+            AppleMusicPlaylist? playlist = GetAllPlaylists().FirstOrDefault(p => p.Id == playlistId);
+            return playlist
+                ?? throw new Exception($"Playlist with ID '{playlistId}' not found in the library XML");
+        }
 
-            while (nextUrl != null)
+        // ── Internals ──────────────────────────────────────────────────────────
+
+        private Dictionary<int, AppleMusicTrack> ParseTracks()
+        {
+            Dictionary<int, AppleMusicTrack> result = new();
+
+            // /plist/dict/key[.='Tracks']/following-sibling::dict[1]
+            XmlNode? tracksDict = _doc.SelectSingleNode("/plist/dict/key[.='Tracks']/following-sibling::dict[1]");
+            if (tracksDict == null)
             {
-                HttpRequestMessage request = new(HttpMethod.Get, nextUrl);
-                HttpResponseMessage response = await GetResponseAsync(request, developerToken, userToken);
+                return result;
+            }
 
-                AppleMusicTracksResponse page = await DeserializeResponseAsync<AppleMusicTracksResponse>(response);
-                if (page.Data != null)
+            // Children of the Tracks dict alternate: <key>Track ID</key> <dict>...</dict>
+            XmlNodeList children = tracksDict.ChildNodes;
+            for (int i = 0; i + 1 < children.Count; i += 2)
+            {
+                XmlNode keyNode = children[i]!;
+                XmlNode dictNode = children[i + 1]!;
+
+                if (!int.TryParse(keyNode.InnerText, out int trackId))
                 {
-                    result.AddRange(page.Data);
+                    continue;
                 }
 
-                nextUrl = page.Next != null ? $"https://api.music.apple.com{page.Next}" : null;
+                Dictionary<string, XmlNode> fields = ParseDict(dictNode);
+
+                result[trackId] = new AppleMusicTrack
+                {
+                    Id = trackId.ToString(),
+                    Name = fields.TryGetValue("Name", out XmlNode? n) ? n.InnerText : string.Empty,
+                    Artist = fields.TryGetValue("Artist", out XmlNode? a) ? a.InnerText : string.Empty,
+                    Album = fields.TryGetValue("Album", out XmlNode? al) ? al.InnerText : string.Empty,
+                    DurationMs = fields.TryGetValue("Total Time", out XmlNode? tt) && int.TryParse(tt.InnerText, out int ms) ? ms : null
+                };
             }
 
             return result;
         }
 
-        private async Task<HttpResponseMessage> GetResponseAsync(HttpRequestMessage request, string developerToken, string userToken)
+        private XmlNode? SelectPlaylistsArray()
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", developerToken);
-            request.Headers.Add("Music-User-Token", userToken);
-
-            HttpResponseMessage response = await HttpClient.SendAsync(request);
-
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                throw new Exception("Unauthorized: please verify your Apple Music developer token and user token are valid");
-            }
-
-            if (response.StatusCode == HttpStatusCode.Forbidden)
-            {
-                throw new Exception("Forbidden: the developer token may be invalid or expired");
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                string body = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Apple Music API error ({response.StatusCode}): {body}");
-            }
-
-            return response;
+            return _doc.SelectSingleNode("/plist/dict/key[.='Playlists']/following-sibling::array[1]");
         }
 
-        private static async Task<TResponse> DeserializeResponseAsync<TResponse>(HttpResponseMessage httpResponseMessage)
+        /// <summary>
+        /// Converts a plist &lt;dict&gt; node into a string → XmlNode map of values.
+        /// Plist dicts alternate &lt;key&gt; and value nodes.
+        /// </summary>
+        private static Dictionary<string, XmlNode> ParseDict(XmlNode dictNode)
         {
-            string responseString = await httpResponseMessage.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<TResponse>(responseString, new JsonSerializerOptions
+            Dictionary<string, XmlNode> result = new();
+            XmlNodeList children = dictNode.ChildNodes;
+            for (int i = 0; i + 1 < children.Count; i += 2)
             {
-                PropertyNameCaseInsensitive = true
-            })!;
+                string key = children[i]!.InnerText;
+                result[key] = children[i + 1]!;
+            }
+            return result;
         }
     }
 }
