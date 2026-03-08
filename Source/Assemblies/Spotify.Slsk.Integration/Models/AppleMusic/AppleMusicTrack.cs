@@ -1,25 +1,15 @@
-using System.Text.Json.Serialization;
-
 namespace Spotify.Slsk.Integration.Models.AppleMusic
 {
     public class AppleMusicTrack
     {
-        [JsonPropertyName("id")]
+        /// <summary>Track ID from the library XML.</summary>
         public string? Id { get; set; }
 
-        [JsonPropertyName("type")]
-        public string? Type { get; set; }
+        public string? Name { get; set; }
+        public string? Artist { get; set; }
+        public string? Album { get; set; }
 
-        [JsonPropertyName("attributes")]
-        public AppleMusicTrackAttributes? Attributes { get; set; }
-    }
-
-    public class AppleMusicTracksResponse
-    {
-        [JsonPropertyName("data")]
-        public List<AppleMusicTrack>? Data { get; set; }
-
-        [JsonPropertyName("next")]
-        public string? Next { get; set; }
+        /// <summary>Duration in milliseconds (Total Time field from the XML).</summary>
+        public int? DurationMs { get; set; }
     }
 }

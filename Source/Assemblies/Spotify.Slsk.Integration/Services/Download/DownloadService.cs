@@ -15,7 +15,6 @@ namespace Spotify.Slsk.Integration.Services.Download
     public class DownloadService
     {
         private SpotifyClient SpotifyClient { get; } = new();
-        private AppleMusicClient AppleMusicClient { get; } = new();
         private SoulseekClient SoulseekClient { get; }
 
         public DownloadService()
@@ -98,26 +97,15 @@ namespace Spotify.Slsk.Integration.Services.Download
         // ── Apple Music methods ────────────────────────────────────────────────
 
         /// <summary>
-        /// Downloads all tracks from an Apple Music library playlist via Soulseek.
+        /// Downloads all tracks from an Apple Music library playlist via Soulseek,
+        /// using a library XML file exported from Music.app (File → Library → Export Library...).
         /// </summary>
-        /// <param name="appleMusicDeveloperToken">Apple Music developer token (JWT signed with a MusicKit private key)</param>
-        /// <param name="appleMusicUserToken">Apple Music user token (obtained via MusicKit JS or native MusicKit)</param>
-        /// <param name="playlistId">Library playlist ID (e.g. p.xxxxx). Provide either this or playlistName.</param>
-        /// <param name="playlistName">Library playlist name. Used when playlistId is not provided.</param>
-        /// <param name="ssUsername">Soulseek username</param>
-        /// <param name="ssPassword">Soulseek password</param>
-        /// <param name="setId3Tags">Whether to set ID3 tags after download</param>
-        /// <param name="musicalKeyFormat">Musical key format for ID3 InitialKey tag</param>
-        /// <param name="soulseekOptionsAction">Optional Soulseek options configurator</param>
         public async Task DownloadAppleMusicPlaylistAsync(
-            string appleMusicDeveloperToken,
-            string appleMusicUserToken,
+            string libraryXmlPath,
             string? playlistId,
             string? playlistName,
             string ssUsername,
             string ssPassword,
-            bool setId3Tags,
-            MusicalKeyFormat musicalKeyFormat,
             Action<SoulseekOptions>? soulseekOptionsAction = null)
         {
             SoulseekOptions options = new();
@@ -125,36 +113,30 @@ namespace Spotify.Slsk.Integration.Services.Download
 
             await SoulseekService.ConnectAndLoginAsync(SoulseekClient, ssUsername, ssPassword);
 
-            if (string.IsNullOrEmpty(playlistId))
+            AppleMusicLibraryClient libraryClient = new(libraryXmlPath);
+
+            AppleMusicPlaylist playlist;
+            if (!string.IsNullOrEmpty(playlistId))
             {
-                playlistName = playlistName
-                    ?? throw new Exception("Please provide an Apple Music playlist ID or playlist name");
-                Log.Warning($"Playlist ID not provided, searching for playlist '{playlistName}' in Apple Music library...");
-                AppleMusicPlaylist found = await AppleMusicClient.GetLibraryPlaylistByNameAsync(playlistName, appleMusicDeveloperToken, appleMusicUserToken);
-                playlistId = found.Id;
-                playlistName = found.Attributes?.Name ?? playlistName;
+                playlist = libraryClient.GetPlaylistById(playlistId);
+            }
+            else if (!string.IsNullOrEmpty(playlistName))
+            {
+                playlist = libraryClient.GetPlaylistByName(playlistName);
             }
             else
             {
-                List<AppleMusicPlaylist> playlists = await AppleMusicClient.GetAllLibraryPlaylistsAsync(appleMusicDeveloperToken, appleMusicUserToken);
-                AppleMusicPlaylist? found = playlists.FirstOrDefault(p => p.Id == playlistId);
-                playlistName = found?.Attributes?.Name ?? playlistId;
+                throw new Exception("Please provide an Apple Music playlist ID (--playlistid) or playlist name (--playlistname)");
             }
 
-            List<AppleMusicTrack> tracks = await AppleMusicClient.GetAllLibraryPlaylistTracksAsync(playlistId!, appleMusicDeveloperToken, appleMusicUserToken);
-            List<TrackToDownload> tracksToDownload = new();
-
-            foreach (AppleMusicTrack track in tracks)
+            List<TrackToDownload> tracksToDownload = playlist.Tracks.Select(track => new TrackToDownload
             {
-                tracksToDownload.Add(new TrackToDownload
-                {
-                    Query = GetQueryForAppleMusicTrack(track),
-                    DurationMs = track.Attributes?.DurationInMillis,
-                    DesiredFileName = GetDesiredFileNameForAppleMusicTrack(track)
-                });
-            }
+                Query = GetQueryForAppleMusicTrack(track),
+                DurationMs = track.DurationMs,
+                DesiredFileName = GetDesiredFileNameForAppleMusicTrack(track)
+            }).ToList();
 
-            Log.Information($"Attempting to download '{tracksToDownload.Count}' Apple Music tracks from playlist '{playlistName}'...");
+            Log.Information($"Attempting to download '{tracksToDownload.Count}' tracks from Apple Music playlist '{playlist.Name}'...");
 
             SemaphoreSlim semaphoreSlim = new(5);
             IEnumerable<Task> tasks = tracksToDownload.Select(async trackToDownload =>
@@ -162,10 +144,9 @@ namespace Spotify.Slsk.Integration.Services.Download
                 await semaphoreSlim.WaitAsync();
                 try
                 {
-                    SoulseekResult result = new();
                     try
                     {
-                        result = await SoulseekService.GetTrackAsync(SoulseekClient, trackToDownload, ssUsername, ssPassword, options, playlistName);
+                        await SoulseekService.GetTrackAsync(SoulseekClient, trackToDownload, ssUsername, ssPassword, options, playlist.Name);
                         Log.Information($"Downloads remaining: '{tracksToDownload.Count - (tracksToDownload.IndexOf(trackToDownload) + 1)}'");
                     }
                     catch (Exception e)
@@ -243,13 +224,13 @@ namespace Spotify.Slsk.Integration.Services.Download
 
         public static string GetQueryForAppleMusicTrack(AppleMusicTrack track)
         {
-            string queryRaw = $"{track.Attributes?.Name} {track.Attributes?.ArtistName} {track.Attributes?.AlbumName}";
+            string queryRaw = $"{track.Name} {track.Artist} {track.Album}";
             return queryRaw.RemoveSpecialCharacters();
         }
 
         private static string GetDesiredFileNameForAppleMusicTrack(AppleMusicTrack track)
         {
-            string raw = $"{track.Attributes?.ArtistName} - {track.Attributes?.AlbumName} - {track.Attributes?.Name}";
+            string raw = $"{track.Artist} - {track.Album} - {track.Name}";
             return raw.RemoveSpecialCharacters();
         }
     }
