@@ -253,7 +253,7 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
 
             if (expectedTrackLength != null)
             {
-                files = files.Where(file => file.Length.HasValue && Math.Abs(file.Length!.Value - expectedTrackLength.Value) < 2000);
+                files = files.Where(file => file.Length.HasValue && Math.Abs(file.Length!.Value - expectedTrackLength.Value) < 2);
             }
 
             return files.Any()

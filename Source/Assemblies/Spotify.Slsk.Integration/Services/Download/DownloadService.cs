@@ -67,7 +67,7 @@ namespace Spotify.Slsk.Integration.Services.Download
             soulseekOptionsAction?.Invoke(options);
 
             await SoulseekService.ConnectAndLoginAsync(SoulseekClient, ssUsername, ssPassword);
-            PlaylistItem playlistItem = new();
+            PlaylistItem playlistItem;
             if (spotifyPlaylistId == null)
             {
                 spotifyPlaylistName = spotifyPlaylistName
@@ -75,6 +75,10 @@ namespace Spotify.Slsk.Integration.Services.Download
                 Log.Warning($"Playlist Id not present, searching for playlist '{spotifyPlaylistName}' of user '{spotifyUserId}'...");
                 playlistItem = await SpotifyClient.GetPlaylistFromUserByName(spotifyUserId, spotifyPlaylistName, spotifyAccessToken);
                 spotifyPlaylistId = playlistItem.Id;
+            }
+            else
+            {
+                playlistItem = await SpotifyClient.GetPlaylistFromUser(spotifyUserId, spotifyPlaylistId, spotifyAccessToken);
             }
 
             List<TrackItem> trackItems = await SpotifyClient.GetUnsavedTracksInPlaylist(spotifyAccessToken, spotifyPlaylistId!);
