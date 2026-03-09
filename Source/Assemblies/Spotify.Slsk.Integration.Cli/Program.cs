@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using McMaster.Extensions.CommandLineUtils;
-using McMaster.Extensions.Hosting;
 using Serilog;
 using Serilog.Extensions.Logging;
 
