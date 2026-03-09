@@ -28,11 +28,9 @@ namespace Spotify.Slsk.Integration.Clients.AppleMusic
         /// </summary>
         public List<AppleMusicPlaylist> GetAllPlaylists()
         {
-            // Tracks dictionary: Track ID -> track data
             Dictionary<int, AppleMusicTrack> tracksById = ParseTracks();
 
-            // Playlists array
-            XmlNode? playlistsArray = SelectPlaylistsArray();
+            XmlNode? playlistsArray = _doc.SelectSingleNode("/plist/dict/key[.='Playlists']/following-sibling::array[1]");
             if (playlistsArray == null)
             {
                 return new List<AppleMusicPlaylist>();
@@ -99,20 +97,16 @@ namespace Spotify.Slsk.Integration.Clients.AppleMusic
                 ?? throw new Exception($"Playlist with ID '{playlistId}' not found in the library XML");
         }
 
-        // ── Internals ──────────────────────────────────────────────────────────
-
         private Dictionary<int, AppleMusicTrack> ParseTracks()
         {
             Dictionary<int, AppleMusicTrack> result = new();
 
-            // /plist/dict/key[.='Tracks']/following-sibling::dict[1]
             XmlNode? tracksDict = _doc.SelectSingleNode("/plist/dict/key[.='Tracks']/following-sibling::dict[1]");
             if (tracksDict == null)
             {
                 return result;
             }
 
-            // Children of the Tracks dict alternate: <key>Track ID</key> <dict>...</dict>
             XmlNodeList children = tracksDict.ChildNodes;
             for (int i = 0; i + 1 < children.Count; i += 2)
             {
@@ -139,15 +133,6 @@ namespace Spotify.Slsk.Integration.Clients.AppleMusic
             return result;
         }
 
-        private XmlNode? SelectPlaylistsArray()
-        {
-            return _doc.SelectSingleNode("/plist/dict/key[.='Playlists']/following-sibling::array[1]");
-        }
-
-        /// <summary>
-        /// Converts a plist &lt;dict&gt; node into a string → XmlNode map of values.
-        /// Plist dicts alternate &lt;key&gt; and value nodes.
-        /// </summary>
         private static Dictionary<string, XmlNode> ParseDict(XmlNode dictNode)
         {
             Dictionary<string, XmlNode> result = new();
