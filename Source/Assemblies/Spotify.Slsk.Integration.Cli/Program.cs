@@ -29,7 +29,7 @@ namespace Spotify.Slsk.Integration.Cli
                .WriteTo.Console()
                .CreateLogger();
 
-            IHostBuilder builder = new HostBuilder()
+            IHost host = new HostBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddLogging(config =>
@@ -42,11 +42,17 @@ namespace Spotify.Slsk.Integration.Cli
                             config.SetMinimumLevel(Enum.Parse<LogLevel>(minimumLevel));
                         }
                     });
-                });
+                    services.AddSingleton<IConsole>(PhysicalConsole.Singleton);
+                })
+                .Build();
 
             try
             {
-                return await builder.RunCommandLineApplicationAsync<SpotseekCommand>(args);
+                var app = new CommandLineApplication<SpotseekCommand>();
+                app.Conventions
+                    .UseDefaultConventions()
+                    .UseConstructorInjection(host.Services);
+                return await app.ExecuteAsync(args);
             }
             catch (Exception ex)
             {
