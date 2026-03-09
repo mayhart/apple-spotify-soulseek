@@ -1,11 +1,15 @@
 # Build output
 bin/
 obj/
+out/
 
 # NuGet
 *.nupkg
 *.snupkg
 .nuget/
+packages/
+project.lock.json
+project.assets.json
 
 # Visual Studio
 .vs/
@@ -13,23 +17,10 @@ obj/
 *.suo
 *.userosscache
 *.sln.docstates
+*.userprefs
 
 # Rider
 .idea/
-out/
-
-# Visual Studio / Rider
-.vs/
-.idea/
-*.user
-*.suo
-*.userprefs
-
-# NuGet
-packages/
-*.nupkg
-project.lock.json
-project.assets.json
 
 # OS
 .DS_Store
@@ -41,10 +32,14 @@ Results/
 logs/
 
 # Secrets / settings overrides
+.env
+.env.*
 appsettings.*.json
 !appsettings.json
 *.pfx
 *.p8
+*.pem
+*.key
 
 # Test results
 TestResults/
