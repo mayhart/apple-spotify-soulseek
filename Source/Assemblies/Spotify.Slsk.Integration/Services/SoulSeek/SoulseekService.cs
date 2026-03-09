@@ -306,24 +306,7 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
                         progress.State = e.Transfer.State;
                         Downloads.AddOrUpdate(key, progress, (k, v) => progress);
                     },
-                    progressUpdated: (e) =>
-                    {
-                        (string Username, string Filename, int Token) key = (e.Transfer.Username, e.Transfer.Filename, e.Transfer.Token);
-                        Downloads.TryGetValue(key, out (TransferStates State, string query, int index) progress);
-                        progress.State = e.Transfer.State;
-
-                        string? status = $"{$"{Downloads.Where(d => d.Value.State.HasFlag(TransferStates.Completed)).Count() + 1}".PadLeft(Downloads.Count.ToString().Length)}/{Downloads.Count}";
-                        Downloads.AddOrUpdate(key, progress, (k, v) => progress);
-
-                        int longest = Downloads.Max(d => Path.GetFileName(d.Key.Filename.ToLocalOSPath()).Length);
-                        string? fn = Path.GetFileName(e.Transfer.Filename.ToLocalOSPath()).PadRight(longest);
-                        string? size = $"{e.Transfer.BytesTransferred.ToMB()}/{e.Transfer.Size.ToMB()}".PadLeft(15);
-                        string? percent = $"({e.Transfer.PercentComplete,3:N0}%)";
-                        string? elapsed = e.Transfer.ElapsedTime.HasValue ? e.Transfer.ElapsedTime.Value.ToString(@"m\:ss") : "--:--";
-                        string? remaining = e.Transfer.RemainingTime.HasValue ? e.Transfer.RemainingTime.Value.ToString(@"m\:ss") : "--:--";
-
-                        Console.Write($"\r {fn}  {size}  {percent}  [{status}]  {e.Transfer.AverageSpeed.ToMB()}/s {elapsed} / {remaining}");
-                    },
+                    progressUpdated: (e) => { },
                     disposeInputStreamOnCompletion: true,
                     disposeOutputStreamOnCompletion: true)).ConfigureAwait(false);
 
