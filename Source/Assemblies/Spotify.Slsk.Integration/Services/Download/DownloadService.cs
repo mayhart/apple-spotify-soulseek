@@ -228,13 +228,13 @@ namespace Spotify.Slsk.Integration.Services.Download
 
         public static string GetQueryForSpotifyTrack(TrackItem trackItem)
         {
-            string queryRaw = $"{trackItem.Track!.Name} {trackItem.Track.Artists![0].Name} {trackItem.Track.Album!.Name}";
+            string queryRaw = $"{trackItem.Track!.Name} {trackItem.Track.Artists![0].Name}";
             return queryRaw.RemoveSpecialCharacters();
         }
 
         public static string GetQueryForAppleMusicTrack(AppleMusicTrack track)
         {
-            string queryRaw = $"{track.Name} {track.Artist} {track.Album}";
+            string queryRaw = $"{track.Name} {track.Artist}";
             return queryRaw.RemoveSpecialCharacters();
         }
 

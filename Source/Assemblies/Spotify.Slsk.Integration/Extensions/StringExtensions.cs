@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -8,9 +9,11 @@ namespace Spotify.Slsk.Integration.Extensions
     {
         public static string RemoveSpecialCharacters(this string str)
         {
+            string normalized = str.Normalize(NormalizationForm.FormD);
             StringBuilder sb = new();
-            foreach (char c in str)
+            foreach (char c in normalized)
             {
+                if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
                 if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == ' ' || c == '-' || c == '_')
                 {
                     sb.Append(c);
