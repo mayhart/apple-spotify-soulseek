@@ -1,0 +1,184 @@
+{
+  "format": 1,
+  "restore": {
+    "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration.Tests/Spotify.Slsk.Integration.Tests.csproj": {}
+  },
+  "projects": {
+    "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration.Tests/Spotify.Slsk.Integration.Tests.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration.Tests/Spotify.Slsk.Integration.Tests.csproj",
+        "projectName": "Spotify.Slsk.Integration.Tests",
+        "projectPath": "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration.Tests/Spotify.Slsk.Integration.Tests.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration.Tests/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/root/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration/Spotify.Slsk.Integration.csproj": {
+                "projectPath": "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration/Spotify.Slsk.Integration.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[17.6.0, )"
+            },
+            "coverlet.collector": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "xunit": {
+              "target": "Package",
+              "version": "[2.4.2, )"
+            },
+            "xunit.runner.visualstudio": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.4.5, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.124/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration/Spotify.Slsk.Integration.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration/Spotify.Slsk.Integration.csproj",
+        "projectName": "Spotify.Slsk.Integration",
+        "projectPath": "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration/Spotify.Slsk.Integration.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/home/user/apple-spotify-soulseek/Source/Assemblies/Spotify.Slsk.Integration/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/root/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Serilog": {
+              "target": "Package",
+              "version": "[4.0.1, )"
+            },
+            "Serilog.Extensions.Hosting": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Serilog.Extensions.Logging": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Serilog.Settings.Configuration": {
+              "target": "Package",
+              "version": "[8.0.2, )"
+            },
+            "Serilog.Sinks.Console": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "Serilog.Sinks.File": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "Soulseek": {
+              "target": "Package",
+              "version": "[6.5.0, )"
+            },
+            "TagLibSharp": {
+              "target": "Package",
+              "version": "[2.3.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[6.0.36, 6.0.36]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[6.0.36, 6.0.36]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.124/RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
