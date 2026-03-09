@@ -17,7 +17,7 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
         [Option(CommandOptionType.SingleValue, ShortName = "x", LongName = "library", Description = "Path to the Apple Music library XML file (export via Music.app → File → Library → Export Library...)", ValueName = "library xml path", ShowInHelpText = true)]
         public string LibraryXmlPath { get; set; }
 
-        [Option(CommandOptionType.SingleValue, ShortName = "l", LongName = "playlistid", Description = "Playlist Persistent ID from the XML", ValueName = "playlist id", ShowInHelpText = true)]
+        [Option(CommandOptionType.SingleValue, ShortName = "l", LongName = "playlistid", Description = "Playlist Persistent ID from the XML (found in the file)", ValueName = "playlist id", ShowInHelpText = true)]
         public string PlaylistId { get; set; }
 
         [Option(CommandOptionType.SingleValue, ShortName = "n", LongName = "playlistname", Description = "Playlist name exactly as shown in Music.app", ValueName = "playlist name", ShowInHelpText = true)]

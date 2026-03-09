@@ -16,7 +16,36 @@ obj/
 
 # Rider
 .idea/
+out/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+project.assets.json
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs & results
+*.log
+Results/
+logs/
+
+# Secrets / settings overrides
+appsettings.*.json
+!appsettings.json
+*.pfx
+*.p8
+
+# Test results
+TestResults/
+coverage/
