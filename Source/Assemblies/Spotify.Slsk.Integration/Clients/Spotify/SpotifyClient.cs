@@ -70,7 +70,7 @@ namespace Spotify.Slsk.Integration.Clients.Spotify
             {
                 foreach (TrackItem item in pageWithTracks.Items!)
                 {
-                    result.Insert(0, item);
+                    result.Add(item);
                 }
                 offset += limit;
                 pageWithTracks = await GetPageWithSavedTracksAsync(accessToken, limit, offset);
@@ -126,7 +126,7 @@ namespace Spotify.Slsk.Integration.Clients.Spotify
             {
                 foreach (TrackItem item in pageWithTracks.Items!)
                 {
-                    result.Insert(0, item);
+                    result.Add(item);
                 }
                 offset += limit;
                 pageWithTracks = await GetPlaylistItems(accessToken, playlistId, limit, offset);
@@ -138,7 +138,7 @@ namespace Spotify.Slsk.Integration.Clients.Spotify
         public async Task<List<TrackItem>> GetUnsavedTracksInPlaylist(string accessToken, string playlistId)
         {
             List<TrackItem> playlistTracks = await GetAllPlaylistTracksAsync(accessToken, playlistId);
-            List<TrackItem> savedTracks = await new SpotifyClient().GetAllSavedTracksAsync(accessToken);
+            List<TrackItem> savedTracks = await GetAllSavedTracksAsync(accessToken);
 
             List<TrackItem> unsavedTracksInPlaylist = new();
             foreach (TrackItem playlistTrack in playlistTracks)
