@@ -100,6 +100,12 @@ namespace Spotify.Slsk.Integration.Services.Download
         /// Downloads all tracks from an Apple Music library playlist via Soulseek,
         /// using a library XML file exported from Music.app (File → Library → Export Library...).
         /// </summary>
+        /// <param name="libraryXmlPath">Path to the exported Apple Music library XML file.</param>
+        /// <param name="playlistId">Playlist Persistent ID from the XML. Provide either this or playlistName.</param>
+        /// <param name="playlistName">Playlist name as shown in Music.app. Used when playlistId is not provided.</param>
+        /// <param name="ssUsername">Soulseek username</param>
+        /// <param name="ssPassword">Soulseek password</param>
+        /// <param name="soulseekOptionsAction">Optional Soulseek options configurator</param>
         public async Task DownloadAppleMusicPlaylistAsync(
             string libraryXmlPath,
             string? playlistId,
