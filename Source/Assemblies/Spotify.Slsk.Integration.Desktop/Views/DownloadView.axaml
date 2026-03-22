@@ -1,0 +1,175 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Spotify.Slsk.Integration.Desktop.ViewModels"
+             x:Class="Spotify.Slsk.Integration.Desktop.Views.DownloadView"
+             x:DataType="vm:DownloadViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Foreground" Value="#aaaacc" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,8,0,2" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#16213e" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#444466" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#1db954" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="20,10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="#c0392b" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*" Margin="20,16">
+
+        <!-- Top: form -->
+        <ScrollViewer Grid.Row="0" MaxHeight="340">
+            <StackPanel Spacing="0">
+
+                <!-- Source selector -->
+                <TextBlock Text="Source" Classes="label" FontWeight="Bold" />
+                <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,12">
+                    <RadioButton Content="Spotify Playlist"
+                                 IsChecked="{Binding SelectedSource, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:DownloadSource.SpotifyPlaylist}}" />
+                    <RadioButton Content="Apple Music Playlist"
+                                 IsChecked="{Binding SelectedSource, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:DownloadSource.AppleMusicPlaylist}}" />
+                </StackPanel>
+
+                <!-- Spotify fields -->
+                <StackPanel IsVisible="{Binding IsSpotify}">
+                    <TextBlock Text="Spotify User ID" Classes="label" />
+                    <TextBox Text="{Binding SpotifyUserId}" Watermark="e.g. spotify123" />
+
+                    <TextBlock Text="Playlist ID (or leave blank and use name)" Classes="label" IsVisible="{Binding ShowPlaylistFields}" />
+                    <TextBox Text="{Binding SpotifyPlaylistId}" Watermark="e.g. 37i9dQZF1DXcBWIGoYBM5M" IsVisible="{Binding ShowPlaylistFields}" />
+
+                    <TextBlock Text="Playlist Name (fallback if no ID)" Classes="label" IsVisible="{Binding ShowPlaylistFields}" />
+                    <TextBox Text="{Binding SpotifyPlaylistName}" Watermark="e.g. My Playlist" IsVisible="{Binding ShowPlaylistFields}" />
+
+                    <TextBlock Text="Spotify Access Token" Classes="label" />
+                    <TextBox Text="{Binding SpotifyAccessToken}" Watermark="Bearer token from Spotify Developer Console" />
+                </StackPanel>
+
+                <!-- Apple Music fields -->
+                <StackPanel IsVisible="{Binding IsAppleMusic}">
+                    <TextBlock Text="Apple Music Library XML" Classes="label" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0" Text="{Binding AppleMusicXmlPath}"
+                                 Watermark="Path to exported Library.xml" IsReadOnly="True" />
+                        <Button Grid.Column="1" Content="Browse..." Margin="8,0,0,0"
+                                Click="BrowseXmlFile_Click" />
+                    </Grid>
+
+                    <TextBlock Text="Playlist ID (or leave blank and use name)" Classes="label" />
+                    <TextBox Text="{Binding AppleMusicPlaylistId}" Watermark="Persistent ID from XML" />
+
+                    <TextBlock Text="Playlist Name" Classes="label" />
+                    <TextBox Text="{Binding AppleMusicPlaylistName}" Watermark="e.g. My Playlist" />
+                </StackPanel>
+
+                <!-- Soulseek credentials -->
+                <Grid ColumnDefinitions="*,16,*" Margin="0,8,0,0">
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Soulseek Username" Classes="label" />
+                        <TextBox Text="{Binding SoulseekUsername}" Watermark="Username" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Soulseek Password" Classes="label" />
+                        <TextBox Text="{Binding SoulseekPassword}" PasswordChar="•" Watermark="Password" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Options row -->
+                <WrapPanel Orientation="Horizontal" Margin="0,14,0,4">
+                    <CheckBox Content="Set ID3 Tags" IsChecked="{Binding SetId3Tags}" Margin="0,0,16,8" />
+                    <CheckBox Content="Allow FLAC" IsChecked="{Binding AllowFlac}" Margin="0,0,16,8" />
+                    <CheckBox Content="Skip Existing" IsChecked="{Binding SkipExistingResults}" Margin="0,0,16,8" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8" VerticalAlignment="Center">
+                        <TextBlock Text="Timeout (s):" VerticalAlignment="Center" Foreground="#aaaacc" Margin="0,0,8,0" />
+                        <NumericUpDown Value="{Binding SearchTimeout}" Minimum="5" Maximum="120"
+                                       Width="80" FormatString="0" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center"
+                                IsVisible="{Binding SetId3Tags}">
+                        <TextBlock Text="Key Format:" VerticalAlignment="Center" Foreground="#aaaacc" Margin="0,0,8,0" />
+                        <ComboBox ItemsSource="{Binding KeyFormats}"
+                                  SelectedItem="{Binding SelectedKeyFormat}"
+                                  Width="120" />
+                    </StackPanel>
+                </WrapPanel>
+
+                <!-- Action buttons -->
+                <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,12,0,0">
+                    <Button Classes="primary" Content="Start Download"
+                            Command="{Binding StartDownloadCommand}"
+                            IsEnabled="{Binding !IsDownloading}" />
+                    <Button Classes="danger" Content="Cancel"
+                            Command="{Binding CancelDownloadCommand}"
+                            IsVisible="{Binding IsDownloading}" />
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Bottom: progress -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,*" Margin="0,12,0,0">
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="20" Margin="0,0,0,8">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#aaaacc" VerticalAlignment="Center" />
+                <TextBlock Foreground="#1db954" VerticalAlignment="Center">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{0} done">
+                            <Binding Path="SuccessCount" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+                <TextBlock Foreground="#e74c3c" VerticalAlignment="Center">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{0} failed">
+                            <Binding Path="FailedCount" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+            </StackPanel>
+
+            <ListBox Grid.Row="1" ItemsSource="{Binding Tracks}"
+                     Background="#0f0f23" BorderBrush="#333355" BorderThickness="1"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TrackStatusViewModel">
+                        <Grid ColumnDefinitions="*,140" Margin="4,3">
+                            <TextBlock Grid.Column="0" Text="{Binding TrackName}"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="White" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding StatusLabel}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       FontSize="12">
+                                <TextBlock.Styles>
+                                    <Style Selector="TextBlock">
+                                        <Setter Property="Foreground" Value="#aaaacc" />
+                                    </Style>
+                                </TextBlock.Styles>
+                            </TextBlock>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+        </Grid>
+
+    </Grid>
+
+</UserControl>

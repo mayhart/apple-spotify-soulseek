@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Spotify.Slsk.Integration.Desktop.ViewModels"
+        xmlns:views="using:Spotify.Slsk.Integration.Desktop.Views"
+        x:Class="Spotify.Slsk.Integration.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Spotseek"
+        Width="900" Height="680"
+        MinWidth="700" MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        Background="#1a1a2e">
+
+    <TabControl Margin="0" TabStripPlacement="Top">
+
+        <TabItem Header="Download">
+            <views:DownloadView DataContext="{Binding DownloadViewModel}" />
+        </TabItem>
+
+        <TabItem Header="Settings">
+            <views:SettingsView DataContext="{Binding SettingsViewModel}" />
+        </TabItem>
+
+    </TabControl>
+
+</Window>

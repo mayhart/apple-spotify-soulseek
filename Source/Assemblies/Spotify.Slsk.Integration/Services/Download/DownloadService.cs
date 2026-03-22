@@ -25,7 +25,8 @@ namespace Spotify.Slsk.Integration.Services.Download
         // ── Spotify methods ────────────────────────────────────────────────────
 
         public async Task DownloadAllPlaylistTracksFromUserAsync(string spotifyUserId, string? spotifyPlaylistId, string? spotifyPlaylistName,
-            string ssUsername, string ssPassword, string spotifyAccessToken, bool setId3Tags, MusicalKeyFormat musicalKeyFormat, Action<SoulseekOptions>? soulseekOptionsAction = null)
+            string ssUsername, string ssPassword, string spotifyAccessToken, bool setId3Tags, MusicalKeyFormat musicalKeyFormat, Action<SoulseekOptions>? soulseekOptionsAction = null,
+            IProgress<TrackDownloadProgress>? progress = null)
         {
             SoulseekOptions options = new();
             soulseekOptionsAction?.Invoke(options);
@@ -57,11 +58,12 @@ namespace Spotify.Slsk.Integration.Services.Download
             }
 
             string playlistName = playlistItem.Name!;
-            await DownloadTracksInParallelAsync(ssUsername, ssPassword, spotifyAccessToken, tracksToDownload, playlistName, options, setId3Tags, musicalKeyFormat, save: false);
+            await DownloadTracksInParallelAsync(ssUsername, ssPassword, spotifyAccessToken, tracksToDownload, playlistName, options, setId3Tags, musicalKeyFormat, save: false, progress: progress);
         }
 
         public async Task DownloadUnsavedPlaylistTracksFromUserAsync(string spotifyUserId, string? spotifyPlaylistId, string? spotifyPlaylistName,
-            string ssUsername, string ssPassword, string spotifyAccessToken, bool setId3Tags, MusicalKeyFormat musicalKeyFormat, Action<SoulseekOptions>? soulseekOptionsAction = null)
+            string ssUsername, string ssPassword, string spotifyAccessToken, bool setId3Tags, MusicalKeyFormat musicalKeyFormat, Action<SoulseekOptions>? soulseekOptionsAction = null,
+            IProgress<TrackDownloadProgress>? progress = null)
         {
             SoulseekOptions options = new();
             soulseekOptionsAction?.Invoke(options);
@@ -95,7 +97,7 @@ namespace Spotify.Slsk.Integration.Services.Download
 
             string playlistName = playlistItem.Name!;
             Log.Information($"Attempting to download '{tracksToDownload.Count}' files...");
-            await DownloadTracksInParallelAsync(ssUsername, ssPassword, spotifyAccessToken, tracksToDownload, playlistName, options, setId3Tags, musicalKeyFormat, save: true);
+            await DownloadTracksInParallelAsync(ssUsername, ssPassword, spotifyAccessToken, tracksToDownload, playlistName, options, setId3Tags, musicalKeyFormat, save: true, progress: progress);
         }
 
         // ── Apple Music methods ────────────────────────────────────────────────
@@ -116,7 +118,8 @@ namespace Spotify.Slsk.Integration.Services.Download
             string? playlistName,
             string ssUsername,
             string ssPassword,
-            Action<SoulseekOptions>? soulseekOptionsAction = null)
+            Action<SoulseekOptions>? soulseekOptionsAction = null,
+            IProgress<TrackDownloadProgress>? progress = null)
         {
             SoulseekOptions options = new();
             soulseekOptionsAction?.Invoke(options);
@@ -151,16 +154,20 @@ namespace Spotify.Slsk.Integration.Services.Download
             SemaphoreSlim semaphoreSlim = new(5);
             IEnumerable<Task> tasks = tracksToDownload.Select(async trackToDownload =>
             {
+                progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Queued });
                 await semaphoreSlim.WaitAsync();
                 try
                 {
                     try
                     {
+                        progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Downloading });
                         await SoulseekService.GetTrackAsync(SoulseekClient, trackToDownload, ssUsername, ssPassword, options, playlist.Name);
+                        progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Success });
                         Log.Information($"Downloads remaining: '{tracksToDownload.Count - (tracksToDownload.IndexOf(trackToDownload) + 1)}'");
                     }
                     catch (Exception e)
                     {
+                        progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Failed, FailReason = e.Message });
                         Log.Error($"Something went wrong downloading '{trackToDownload.Query}': {e.Message}");
                     }
                 }
@@ -176,15 +183,16 @@ namespace Spotify.Slsk.Integration.Services.Download
         // ── Shared helpers ─────────────────────────────────────────────────────
 
         private async Task DownloadTracksInParallelAsync(string ssUsername, string ssPassword, string spotifyAccessToken, List<TrackToDownload> tracksToDownload, string playlistName,
-            SoulseekOptions options, bool setId3Tags, MusicalKeyFormat musicalKeyFormat, bool save = true)
+            SoulseekOptions options, bool setId3Tags, MusicalKeyFormat musicalKeyFormat, bool save = true, IProgress<TrackDownloadProgress>? progress = null)
         {
             SemaphoreSlim semaphoreSlim = new(5);
             IEnumerable<Task> tasks = tracksToDownload.Select(async trackToDownload =>
             {
+                progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Queued });
                 await semaphoreSlim.WaitAsync();
                 try
                 {
-                    await DownloadSpotifyTrackAsync(ssUsername, ssPassword, spotifyAccessToken, playlistName, trackToDownload, options, setId3Tags, musicalKeyFormat, save);
+                    await DownloadSpotifyTrackAsync(ssUsername, ssPassword, spotifyAccessToken, playlistName, trackToDownload, options, setId3Tags, musicalKeyFormat, save, progress);
                     Log.Information($"Downloads remaining: '{tracksToDownload.Count - (tracksToDownload.IndexOf(trackToDownload) + 1)}'");
                 }
                 finally
@@ -197,17 +205,25 @@ namespace Spotify.Slsk.Integration.Services.Download
         }
 
         private async Task<bool> DownloadSpotifyTrackAsync(string ssUsername, string ssPassword, string spotifyAccessToken, string playlistName,
-            TrackToDownload trackToDownload, SoulseekOptions soulseekOptions, bool setId3Tags, MusicalKeyFormat musicalKeyFormat, bool save = false)
+            TrackToDownload trackToDownload, SoulseekOptions soulseekOptions, bool setId3Tags, MusicalKeyFormat musicalKeyFormat, bool save = false,
+            IProgress<TrackDownloadProgress>? progress = null)
         {
             SoulseekResult result = new();
             try
             {
+                progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Downloading });
                 result = await SoulseekService.GetTrackAsync(SoulseekClient, trackToDownload, ssUsername, ssPassword, soulseekOptions, playlistName);
             }
             catch (Exception e)
             {
+                progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Failed, FailReason = e.Message });
                 Log.Error($"Something went wrong downloading '{trackToDownload.Query}', stacktrace:");
                 Log.Error($"{e.StackTrace}");
+            }
+
+            if (result.Success)
+            {
+                progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Success });
             }
 
             if (result.Success && save)

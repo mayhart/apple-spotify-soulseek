@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Spotify.Slsk.Integration.Desktop.ViewModels"
+             x:Class="Spotify.Slsk.Integration.Desktop.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Foreground" Value="#aaaacc" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,10,0,3" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#16213e" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#444466" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Margin="32,24" MaxWidth="480" HorizontalAlignment="Left">
+
+        <TextBlock Text="Soulseek Account" FontSize="18" FontWeight="Bold"
+                   Foreground="White" Margin="0,0,0,16" />
+
+        <TextBlock Text="These credentials are saved locally and encrypted." Foreground="#777799"
+                   TextWrapping="Wrap" Margin="0,0,0,16" />
+
+        <TextBlock Text="Username" Classes="label" />
+        <TextBox Text="{Binding SoulseekUsername}" Watermark="Your Soulseek username" />
+
+        <TextBlock Text="Password" Classes="label" />
+        <TextBox Text="{Binding SoulseekPassword}" PasswordChar="•" Watermark="Your Soulseek password" />
+
+        <Button Content="Save" Margin="0,20,0,0" Padding="24,10"
+                Background="#1db954" Foreground="White" FontWeight="Bold"
+                Command="{Binding SaveCommand}" />
+
+        <TextBlock Text="{Binding SavedMessage}" Foreground="#1db954"
+                   Margin="0,10,0,0" IsVisible="{Binding SavedMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+        <Separator Margin="0,28" Background="#333355" Height="1" />
+
+        <TextBlock Text="About" FontSize="16" FontWeight="Bold" Foreground="White" Margin="0,0,0,12" />
+        <TextBlock TextWrapping="Wrap" Foreground="#777799">
+            Spotseek downloads tracks from Spotify or Apple Music playlists via the Soulseek peer-to-peer network.
+            You need a free Soulseek account at slsknet.org and a Spotify access token from the Developer Console.
+        </TextBlock>
+
+    </StackPanel>
+
+</UserControl>
