@@ -13,12 +13,48 @@ A .NET 6 CLI tool that downloads tracks from **Spotify** or **Apple Music** play
 
 ## Requirements
 
-- [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
 - A [Soulseek](https://www.slsknet.org/) account
 - **Spotify commands:** a Spotify access token (OAuth, obtainable from the [Spotify Developer Console](https://developer.spotify.com/console/))
 - **Apple Music command:** an Apple Music library XML file — export from Music.app via **File → Library → Export Library...**
 
-## Build
+## Installation
+
+### macOS
+
+**Prerequisites:**
+- [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+- Xcode command-line tools: `xcode-select --install`
+- `create-dmg` (optional, for a nicer DMG): `brew install create-dmg`
+
+```bash
+chmod +x scripts/build-mac.sh
+./scripts/build-mac.sh
+```
+
+This produces two installers in `dist/mac/`:
+- `Spotseek-1.0.0-intel.dmg` — Intel Macs
+- `Spotseek-1.0.0-apple-silicon.dmg` — M1/M2/M3 Macs
+
+Open the appropriate `.dmg`, drag **Spotseek** to `/Applications`, and launch it.
+
+### Windows
+
+**Prerequisites:**
+- [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+- [NSIS 3.x](https://nsis.sourceforge.io) (optional — required only for the installer; a standalone `.exe` is produced without it)
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\build-win.ps1
+```
+
+Output in `dist\win\`:
+- `Spotseek-1.0.0-Setup.exe` (if NSIS is installed) — run to install
+- `publish\Spotseek.exe` (if NSIS is not installed) — run directly
+
+### Building from source
+
+For development or the CLI only ([.NET 6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) required):
 
 ```bash
 cd Source
