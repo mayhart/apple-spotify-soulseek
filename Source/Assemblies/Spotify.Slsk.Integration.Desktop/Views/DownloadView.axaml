@@ -41,9 +41,9 @@
                 <TextBlock Text="Source" Classes="label" FontWeight="Bold" />
                 <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,12">
                     <RadioButton Content="Spotify Playlist"
-                                 IsChecked="{Binding SelectedSource, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:DownloadSource.SpotifyPlaylist}}" />
+                                 IsChecked="{Binding IsSpotifyPlaylistSelected, Mode=TwoWay}" />
                     <RadioButton Content="Apple Music Playlist"
-                                 IsChecked="{Binding SelectedSource, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:DownloadSource.AppleMusicPlaylist}}" />
+                                 IsChecked="{Binding IsAppleMusicPlaylistSelected, Mode=TwoWay}" />
                 </StackPanel>
 
                 <!-- Spotify fields -->

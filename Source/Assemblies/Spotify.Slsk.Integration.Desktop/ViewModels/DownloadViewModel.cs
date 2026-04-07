@@ -27,12 +27,26 @@ public partial class DownloadViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsAppleMusic))]
     [NotifyPropertyChangedFor(nameof(ShowPlaylistFields))]
     [NotifyPropertyChangedFor(nameof(ShowTrackField))]
+    [NotifyPropertyChangedFor(nameof(IsSpotifyPlaylistSelected))]
+    [NotifyPropertyChangedFor(nameof(IsAppleMusicPlaylistSelected))]
     private DownloadSource _selectedSource = DownloadSource.SpotifyPlaylist;
 
     public bool IsSpotify => SelectedSource != DownloadSource.AppleMusicPlaylist;
     public bool IsAppleMusic => SelectedSource == DownloadSource.AppleMusicPlaylist;
     public bool ShowPlaylistFields => SelectedSource != DownloadSource.SpotifyTrack;
     public bool ShowTrackField => SelectedSource == DownloadSource.SpotifyTrack;
+
+    public bool IsSpotifyPlaylistSelected
+    {
+        get => SelectedSource == DownloadSource.SpotifyPlaylist;
+        set { if (value) SelectedSource = DownloadSource.SpotifyPlaylist; }
+    }
+
+    public bool IsAppleMusicPlaylistSelected
+    {
+        get => SelectedSource == DownloadSource.AppleMusicPlaylist;
+        set { if (value) SelectedSource = DownloadSource.AppleMusicPlaylist; }
+    }
 
     // ── Spotify inputs ────────────────────────────────────────────────────────
 
