@@ -178,6 +178,7 @@ namespace Spotify.Slsk.Integration.Services.Download
             });
 
             await Task.WhenAll(tasks);
+            SoulseekService.WriteResultsSummary();
         }
 
         // ── Shared helpers ─────────────────────────────────────────────────────
@@ -202,6 +203,7 @@ namespace Spotify.Slsk.Integration.Services.Download
             });
 
             await Task.WhenAll(tasks);
+            SoulseekService.WriteResultsSummary();
         }
 
         private async Task<bool> DownloadSpotifyTrackAsync(string ssUsername, string ssPassword, string spotifyAccessToken, string playlistName,

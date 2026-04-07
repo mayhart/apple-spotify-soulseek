@@ -5,6 +5,7 @@ using Spotify.Slsk.Integration.Models.Spotify;
 using Soulseek;
 using Soulseek.Diagnostics;
 using System.Collections.Concurrent;
+using System.Text;
 using Serilog;
 using System.Runtime.InteropServices;
 
@@ -19,8 +20,8 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
         private static readonly string CURRENT_DIRECTORY = System.IO.Directory.GetParent(System.IO.Directory.GetCurrentDirectory())!.FullName;
         private static string RESULTS_DIRECTORY { get; set; } = default!;
         private static string TRACKS_DIRECTORY { get; set; } = default!;
-        private static string SUCCESSFUL_DOWNLOADS_DIRECTORY { get; set; } = default!;
-        private static string FAILED_DOWNLOADS_DIRECTORY { get; set; } = default!;
+        private static ConcurrentDictionary<string, (bool Success, FailedDownloadReason? Reason)> DownloadResults { get; } = new();
+        private static HashSet<string> PreviouslyProcessed { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         private static ConcurrentDictionary<(string Username, string Filename, int Token), (TransferStates State, string desiredFileName, int index)> Downloads { get; set; }
             = new ConcurrentDictionary<(string Username, string Filename, int Token), (TransferStates State, string desiredFileName, int index)>();
@@ -115,7 +116,7 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
             if (response == null)
             {
                 Log.Error($"Could not find matching response for '{trackToDownload.Query}'.");
-                CreateFailedDownloadFile(trackToDownload.Query!, FailedDownloadReason.NoResponse);
+                RecordFailure(trackToDownload.Query!, FailedDownloadReason.NoResponse);
                 return result;
             }
 
@@ -123,7 +124,7 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
             if (file == null)
             {
                 Log.Error($"could not find matching file for '{trackToDownload.Query}'.");
-                CreateFailedDownloadFile(trackToDownload.Query!, FailedDownloadReason.NoFile);
+                RecordFailure(trackToDownload.Query!, FailedDownloadReason.NoFile);
                 return result;
             }
 
@@ -137,12 +138,12 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
             if (!success)
             {
                 Log.Error($"Downloading file '{trackToDownload.Query}' failed.");
-                CreateFailedDownloadFile(trackToDownload.Query!, FailedDownloadReason.FailedDownload);
+                RecordFailure(trackToDownload.Query!, FailedDownloadReason.FailedDownload);
             }
             else
             {
                 Log.Information($"Downloading file '{trackToDownload.Query}' succeeded.");
-                CreateSuccessfulDownloadFile(trackToDownload.Query!);
+                RecordSuccess(trackToDownload.Query!);
             }
 
             client.StateChanged -= Client_ServerStateChanged!;
@@ -270,7 +271,7 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
                     bool isRemoved = Downloads.TryRemove(download.Key, out (TransferStates State, string Query, int Index) removedValue);
                     if (isRemoved)
                     {
-                        CreateFailedDownloadFile(download.Value.Query, FailedDownloadReason.Queued);
+                        RecordFailure(download.Value.Query, FailedDownloadReason.Queued);
                     }
                     else
                     {
@@ -335,36 +336,27 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
             }
 
             TRACKS_DIRECTORY = Path.Combine(RESULTS_DIRECTORY, "Tracks");
-            SUCCESSFUL_DOWNLOADS_DIRECTORY = Path.Combine(RESULTS_DIRECTORY, "Success");
-            FAILED_DOWNLOADS_DIRECTORY = Path.Combine(RESULTS_DIRECTORY, "Failed");
 
             if (!System.IO.Directory.Exists(TRACKS_DIRECTORY))
             {
                 System.IO.Directory.CreateDirectory(TRACKS_DIRECTORY);
             }
 
-            if (!System.IO.Directory.Exists(SUCCESSFUL_DOWNLOADS_DIRECTORY))
-            {
-                System.IO.Directory.CreateDirectory(SUCCESSFUL_DOWNLOADS_DIRECTORY);
-            }
-
-            if (!System.IO.Directory.Exists(FAILED_DOWNLOADS_DIRECTORY))
-            {
-                System.IO.Directory.CreateDirectory(FAILED_DOWNLOADS_DIRECTORY);
-            }
-
-            CreateFailedDownloadReasonDirectories();
+            LoadPreviousResults();
         }
 
-        private static void CreateFailedDownloadReasonDirectories()
+        private static void LoadPreviousResults()
         {
-            foreach (FailedDownloadReason reason in Enum.GetValues<FailedDownloadReason>())
+            string mdPath = Path.Combine(RESULTS_DIRECTORY, "results.md");
+            if (!System.IO.File.Exists(mdPath)) return;
+
+            foreach (string line in System.IO.File.ReadAllLines(mdPath))
             {
-                string path = Path.Combine(FAILED_DOWNLOADS_DIRECTORY, reason.ToString());
-                if (!System.IO.Directory.Exists(path))
-                {
-                    System.IO.Directory.CreateDirectory(path);
-                }
+                if (!line.StartsWith("- ")) continue;
+                string entry = line[2..];
+                int parenIdx = entry.LastIndexOf(" (");
+                if (parenIdx >= 0) entry = entry[..parenIdx];
+                PreviouslyProcessed.Add(entry.Trim());
             }
         }
 
@@ -376,46 +368,40 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
             }
         }
 
-        private static void CreateSuccessfulDownloadFile(string query)
-        {
-            System.IO.File.Create(GetSuccessfulDownloadPath(query));
-        }
+        private static void RecordSuccess(string query) =>
+            DownloadResults.TryAdd(query, (true, null));
 
-        private static void CreateFailedDownloadFile(string query, FailedDownloadReason failedDownloadReason)
-        {
-            System.IO.File.Create(GetFailedDownloadPath(query!, failedDownloadReason));
-        }
+        private static void RecordFailure(string query, FailedDownloadReason reason) =>
+            DownloadResults.TryAdd(query, (false, reason));
 
-        private static string GetSuccessfulDownloadPath(string query)
-        {
-            return Path.Combine(SUCCESSFUL_DOWNLOADS_DIRECTORY, $"{query}.success");
-        }
+        private static bool IsResultFilePresent(string query) =>
+            DownloadResults.ContainsKey(query) || PreviouslyProcessed.Contains(query);
 
-        private static string GetFailedDownloadPath(string query, FailedDownloadReason failedDownloadReason)
+        public static void WriteResultsSummary()
         {
-            return Path.Combine(FAILED_DOWNLOADS_DIRECTORY, $"{failedDownloadReason}", $"{query}.failed");
-        }
+            if (RESULTS_DIRECTORY == default) return;
 
-        private static bool IsResultFilePresent(string query)
-        {
-            return IsFailedDownloadFilePresent(query) || IsSuccessfulDownloadFilePresent(query);
-        }
+            List<string> succeeded = DownloadResults
+                .Where(r => r.Value.Success).Select(r => r.Key).OrderBy(q => q).ToList();
+            List<(string Query, FailedDownloadReason? Reason)> failed = DownloadResults
+                .Where(r => !r.Value.Success).Select(r => (Query: r.Key, r.Value.Reason)).OrderBy(r => r.Query).ToList();
 
-        private static bool IsSuccessfulDownloadFilePresent(string query)
-        {
-            return System.IO.File.Exists(GetSuccessfulDownloadPath(query));
-        }
+            StringBuilder sb = new();
+            sb.AppendLine("# Download Results");
+            sb.AppendLine();
+            sb.AppendLine($"**Total:** {DownloadResults.Count} | **Succeeded:** {succeeded.Count} | **Failed:** {failed.Count}");
+            sb.AppendLine();
+            sb.AppendLine("## Succeeded");
+            foreach (string q in succeeded)
+                sb.AppendLine($"- {q}");
+            sb.AppendLine();
+            sb.AppendLine("## Failed");
+            foreach ((string q, FailedDownloadReason? reason) in failed)
+                sb.AppendLine($"- {q} ({reason})");
 
-        private static bool IsFailedDownloadFilePresent(string query)
-        {
-            foreach (FailedDownloadReason reason in Enum.GetValues<FailedDownloadReason>())
-            {
-                if (System.IO.File.Exists(GetFailedDownloadPath(query, reason)))
-                {
-                    return true;
-                }
-            }
-            return false;
+            string mdPath = Path.Combine(RESULTS_DIRECTORY, "results.md");
+            System.IO.File.WriteAllText(mdPath, sb.ToString());
+            Log.Information($"Results summary written to '{mdPath}'.");
         }
     }
 }
