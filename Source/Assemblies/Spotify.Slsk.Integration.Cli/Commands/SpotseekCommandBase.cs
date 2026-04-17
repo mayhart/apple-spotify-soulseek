@@ -53,19 +53,35 @@ namespace Spotify.Slsk.Integration.Cli.Commands
             {
                 if (_userProfile == null)
                 {
-                    var text = System.IO.File.ReadAllText($"{ProfileFolder}{Profile}");
-                    if (!string.IsNullOrEmpty(text))
+                    var profilePath = $"{ProfileFolder}{Profile}";
+                    if (System.IO.File.Exists(profilePath))
                     {
-                        _userProfile = JsonSerializer.Deserialize<UserProfile>(text);
-                        if (_userProfile != null)
+                        var text = System.IO.File.ReadAllText(profilePath);
+                        if (!string.IsNullOrEmpty(text))
                         {
-                            _userProfile.Password = Decrypt(_userProfile.Password);
+                            _userProfile = JsonSerializer.Deserialize<UserProfile>(text);
+                            if (_userProfile != null)
+                            {
+                                _userProfile.Password = Decrypt(_userProfile.Password);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var username = Environment.GetEnvironmentVariable("SOULSEEK_USERNAME");
+                        var password = Environment.GetEnvironmentVariable("SOULSEEK_PASSWORD");
+                        if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+                        {
+                            _userProfile = new UserProfile { Username = username, Password = password };
                         }
                     }
                 }
                 return _userProfile;
             }
         }
+
+        protected static string ResolveCredential(string value, string envVar) =>
+            !string.IsNullOrEmpty(value) ? value : Environment.GetEnvironmentVariable(envVar);
 
         protected static string SecureStringToString(SecureString value)
 		{
