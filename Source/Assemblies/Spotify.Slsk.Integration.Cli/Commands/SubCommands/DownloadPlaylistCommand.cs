@@ -72,16 +72,19 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
                 SpotifyPlaylistName = Prompt.GetString("Spotify playlist name:", SpotifyPlaylistName);
             }
 
+            SpotifyAccessToken = ResolveCredential(SpotifyAccessToken, "SPOTIFY_ACCESS_TOKEN");
             if (string.IsNullOrEmpty(SpotifyAccessToken))
             {
                 SpotifyAccessToken = Prompt.GetString("Spotify API access token:", SpotifyAccessToken);
             }
 
+            SSUsername = ResolveCredential(SSUsername, "SOULSEEK_USERNAME");
             if (string.IsNullOrEmpty(SSUsername))
             {
                 SSUsername = Prompt.GetString("Soulseek user name:", SSUsername);
             }
 
+            SSPassword = ResolveCredential(SSPassword, "SOULSEEK_PASSWORD");
             if (string.IsNullOrEmpty(SSPassword))
             {
                 SSPassword = SecureStringToString(Prompt.GetPasswordAsSecureString("Soulseek password:"));
