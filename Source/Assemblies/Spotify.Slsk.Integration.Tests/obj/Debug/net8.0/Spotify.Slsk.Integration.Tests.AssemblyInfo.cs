@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Spotify.Slsk.Integration.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+715b1671c76347a7d5a394a572106a955851c06e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+76d7e8f41705e5dd1e8a289f3c584b39f4937d96")]
 [assembly: System.Reflection.AssemblyProductAttribute("Spotify.Slsk.Integration.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Spotify.Slsk.Integration.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
