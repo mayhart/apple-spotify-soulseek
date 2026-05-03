@@ -3,13 +3,14 @@
 Reads a Google Sheet for new song entries, downloads each via the Spotseek CLI,
 and writes the result status back to the sheet.
 
-Expected sheet columns (1-indexed):
-  A  Song Name
-  B  Artist
-  C  Query       (optional; if empty, built as "Artist - Song Name")
-  D  Status      (empty = new; set to Processing → Downloaded / Failed)
-  E  Notes       (failure reason or other info)
-  F  Processed At
+Sheet columns (1-indexed):
+  A  Track         e.g. "La Palma by Pablo Fierro on Apple Music" or just "La Niña Grande"
+  B  Artist        e.g. "Thornato & Soto" (may be empty if encoded in column A)
+  C  Date Added
+  D  Status        "New" = needs processing; anything else = skip
+  E  Processed At  written after each run
+  F  URL           Apple Music link (for reference only)
+  G  Vibe          untouched
 
 Required environment variables:
   GOOGLE_SHEET_ID      – the ID from the sheet URL
@@ -25,6 +26,7 @@ Optional:
 """
 
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -48,21 +50,24 @@ CLI_PATH = Path(os.environ.get("CLI_PATH", str(_default_cli)))
 CLI_TIMEOUT = int(os.environ.get("CLI_TIMEOUT", "120"))
 DRY_RUN = os.environ.get("DRY_RUN", "0") == "1"
 
-COL_SONG = 1
+# Column indices (1-based to match gspread's update_cell)
+COL_TRACK = 1
 COL_ARTIST = 2
-COL_QUERY = 3
+COL_DATE_ADDED = 3
 COL_STATUS = 4
-COL_NOTES = 5
-COL_PROCESSED_AT = 6
+COL_PROCESSED_AT = 5
+COL_URL = 6
+COL_VIBE = 7
 
-STATUS_NEW = ""
+STATUS_NEW = "New"
 STATUS_PROCESSING = "Processing"
 STATUS_DOWNLOADED = "Downloaded"
-STATUS_FAILED = "Failed"
+STATUS_NOT_FOUND = "Not Found"
 
-SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+# Matches "Track Name by Artist Name on Apple Music"
+_APPLE_MUSIC_RE = re.compile(r"^(.+?)\s+by\s+(.+?)\s+on\s+Apple\s+Music$", re.IGNORECASE)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -75,31 +80,55 @@ def open_sheet() -> gspread.Worksheet:
     return client.open_by_key(SHEET_ID).sheet1
 
 
+def cell(row: list[str], col: int) -> str:
+    """Return stripped cell value or empty string if column doesn't exist."""
+    return row[col - 1].strip() if len(row) >= col else ""
+
+
 def build_query(row: list[str]) -> str:
-    """Return the search query for a row, defaulting to 'Artist - Song Name'."""
-    query = row[COL_QUERY - 1].strip() if len(row) >= COL_QUERY else ""
-    if query:
-        return query
-    artist = row[COL_ARTIST - 1].strip() if len(row) >= COL_ARTIST else ""
-    song = row[COL_SONG - 1].strip() if len(row) >= COL_SONG else ""
-    return f"{artist} - {song}" if artist else song
+    """
+    Build a Soulseek search query from a row.
+
+    Priority:
+      1. If column A is "Track by Artist on Apple Music" → "Artist - Track"
+      2. If column B (Artist) is non-empty → "Artist - Track"
+      3. Fall back to column A as-is.
+    """
+    track_col = cell(row, COL_TRACK)
+    artist_col = cell(row, COL_ARTIST)
+
+    match = _APPLE_MUSIC_RE.match(track_col)
+    if match:
+        track_name, artist_name = match.group(1).strip(), match.group(2).strip()
+        return f"{artist_name} - {track_name}"
+
+    if artist_col:
+        return f"{artist_col} - {track_col}"
+
+    return track_col
+
+
+def human_label(row: list[str]) -> str:
+    """Short human-readable label for log output."""
+    track_col = cell(row, COL_TRACK)
+    match = _APPLE_MUSIC_RE.match(track_col)
+    if match:
+        return f"{match.group(2).strip()} - {match.group(1).strip()}"
+    artist_col = cell(row, COL_ARTIST)
+    return f"{artist_col} - {track_col}" if artist_col else track_col
 
 
 def run_cli(query: str) -> tuple[bool, str]:
     """
     Run the CLI download-track command for *query*.
-    Returns (success, notes).
+    Returns (success, failure_note).
     Exit codes: 0 = success, 1 = exception, 2 = download failed.
     """
     if DRY_RUN:
-        print(f"  [DRY RUN] would run: {CLI_PATH} download-track -q {query!r}")
-        return True, "dry-run"
+        print(f"  [DRY RUN] would run: {CLI_PATH} download-track --query {query!r}")
+        return True, ""
 
-    cmd = [
-        str(CLI_PATH),
-        "download-track",
-        "--query", query,
-    ]
+    cmd = [str(CLI_PATH), "download-track", "--query", query]
     env = {
         **os.environ,
         "SOULSEEK_USERNAME": SOULSEEK_USERNAME,
@@ -107,13 +136,7 @@ def run_cli(query: str) -> tuple[bool, str]:
     }
 
     try:
-        result = subprocess.run(
-            cmd,
-            env=env,
-            timeout=CLI_TIMEOUT,
-            capture_output=True,
-            text=True,
-        )
+        result = subprocess.run(cmd, env=env, timeout=CLI_TIMEOUT, capture_output=True, text=True)
     except subprocess.TimeoutExpired:
         return False, f"Timed out after {CLI_TIMEOUT}s"
     except Exception as exc:
@@ -122,8 +145,8 @@ def run_cli(query: str) -> tuple[bool, str]:
     if result.returncode == 0:
         return True, ""
 
-    stderr = result.stderr.strip().splitlines()
-    note = stderr[-1] if stderr else f"exit code {result.returncode}"
+    stderr_lines = result.stderr.strip().splitlines()
+    note = stderr_lines[-1] if stderr_lines else f"exit {result.returncode}"
     return False, note
 
 
@@ -142,14 +165,12 @@ def process(sheet: gspread.Worksheet) -> None:
         print("Sheet is empty.")
         return
 
-    # Row 1 is the header; data starts at row index 1 (1-based row 2)
-    header = all_rows[0]
-    data_rows = all_rows[1:]
+    data_rows = all_rows[1:]  # skip header row
 
     new_rows = [
-        (row_idx + 2, row)  # +2: 1-based index + skip header
-        for row_idx, row in enumerate(data_rows)
-        if len(row) < COL_STATUS or row[COL_STATUS - 1].strip() in (STATUS_NEW,)
+        (idx + 2, row)  # +2: convert 0-based data index to 1-based sheet row
+        for idx, row in enumerate(data_rows)
+        if cell(row, COL_STATUS) == STATUS_NEW
     ]
 
     if not new_rows:
@@ -159,41 +180,37 @@ def process(sheet: gspread.Worksheet) -> None:
     print(f"Found {len(new_rows)} new song(s) to process.")
 
     for sheet_row, row in new_rows:
-        song = row[COL_SONG - 1].strip() if len(row) >= COL_SONG else ""
-        artist = row[COL_ARTIST - 1].strip() if len(row) >= COL_ARTIST else ""
         query = build_query(row)
+        label = human_label(row)
 
         if not query:
-            print(f"  Row {sheet_row}: skipping — no song name or query.")
+            print(f"  Row {sheet_row}: skipping — track column is empty.")
             sheet.update_cell(sheet_row, COL_STATUS, "Skipped")
-            sheet.update_cell(sheet_row, COL_NOTES, "No song name or query")
             sheet.update_cell(sheet_row, COL_PROCESSED_AT, now_utc())
             continue
 
-        label = f"{artist} - {song}" if artist else song
-        print(f"  Row {sheet_row}: processing '{label}' (query: {query!r})")
-
+        print(f"  Row {sheet_row}: '{label}' → query: {query!r}")
         sheet.update_cell(sheet_row, COL_STATUS, STATUS_PROCESSING)
 
-        success, notes = run_cli(query)
-        status = STATUS_DOWNLOADED if success else STATUS_FAILED
+        success, note = run_cli(query)
 
-        sheet.update_cell(sheet_row, COL_STATUS, status)
-        if notes:
-            sheet.update_cell(sheet_row, COL_NOTES, notes)
+        if success:
+            sheet.update_cell(sheet_row, COL_STATUS, STATUS_DOWNLOADED)
+            print(f"    ✓ Downloaded")
+        else:
+            sheet.update_cell(sheet_row, COL_STATUS, STATUS_NOT_FOUND)
+            print(f"    ✗ Not Found: {note}")
+
         sheet.update_cell(sheet_row, COL_PROCESSED_AT, now_utc())
-
-        result_icon = "✓" if success else "✗"
-        print(f"    {result_icon} {status}" + (f": {notes}" if notes else ""))
 
 
 def main() -> None:
     missing = [
-        var for var in ("GOOGLE_SHEET_ID", "GOOGLE_CREDS_PATH", "SOULSEEK_USERNAME", "SOULSEEK_PASSWORD")
-        if not os.environ.get(var)
+        v for v in ("GOOGLE_SHEET_ID", "GOOGLE_CREDS_PATH", "SOULSEEK_USERNAME", "SOULSEEK_PASSWORD")
+        if not os.environ.get(v)
     ]
     if missing:
-        print(f"Error: missing required environment variables: {', '.join(missing)}", file=sys.stderr)
+        print(f"Error: missing env vars: {', '.join(missing)}", file=sys.stderr)
         sys.exit(1)
 
     if not DRY_RUN and not CLI_PATH.exists():
@@ -202,10 +219,7 @@ def main() -> None:
         sys.exit(1)
 
     print(f"[{now_utc()}] Starting song processor (dry_run={DRY_RUN})")
-
-    sheet = open_sheet()
-    process(sheet)
-
+    process(open_sheet())
     print(f"[{now_utc()}] Done.")
 
 
