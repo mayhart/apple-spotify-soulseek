@@ -100,10 +100,10 @@ def build_query(row: list[str]) -> str:
     match = _APPLE_MUSIC_RE.match(track_col)
     if match:
         track_name, artist_name = match.group(1).strip(), match.group(2).strip()
-        return f"{artist_name} - {track_name}"
+        return f"{artist_name} {track_name}"
 
     if artist_col:
-        return f"{artist_col} - {track_col}"
+        return f"{artist_col} {track_col}"
 
     return track_col
 
