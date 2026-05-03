@@ -62,6 +62,10 @@ public partial class DownloadViewModel : ObservableObject
     [ObservableProperty] private string _appleMusicPlaylistId = string.Empty;
     [ObservableProperty] private string _appleMusicPlaylistName = string.Empty;
 
+    // ── Output ────────────────────────────────────────────────────────────────
+
+    [ObservableProperty] private string _outputFolder = string.Empty;
+
     // ── Soulseek credentials (from settings) ──────────────────────────────────
 
     [ObservableProperty] private string _soulseekUsername = string.Empty;
@@ -109,6 +113,7 @@ public partial class DownloadViewModel : ObservableObject
         SkipExistingResults = settings.SkipExistingResults;
         SearchTimeout = settings.SearchTimeout;
         SelectedKeyFormat = settings.KeyFormat;
+        OutputFolder = settings.LastOutputFolder;
     }
 
     // ── Commands ──────────────────────────────────────────────────────────────
@@ -121,6 +126,7 @@ public partial class DownloadViewModel : ObservableObject
     }
 
     public void SetAppleMusicXmlPath(string path) => AppleMusicXmlPath = path;
+    public void SetOutputFolder(string path) => OutputFolder = path;
 
     [RelayCommand(CanExecute = nameof(CanStartDownload))]
     private async Task StartDownload()
@@ -140,6 +146,7 @@ public partial class DownloadViewModel : ObservableObject
         settings.SkipExistingResults = SkipExistingResults;
         settings.SearchTimeout = SearchTimeout;
         settings.KeyFormat = SelectedKeyFormat;
+        settings.LastOutputFolder = OutputFolder;
         _settingsService.Save(settings);
 
         var progress = new Progress<TrackDownloadProgress>(p =>
@@ -190,6 +197,7 @@ public partial class DownloadViewModel : ObservableObject
                             opts.AllowFlac = AllowFlac;
                             opts.SkipResults = SkipExistingResults;
                             opts.SearchTimeout = SearchTimeout;
+                            opts.OutputDirectory = string.IsNullOrWhiteSpace(OutputFolder) ? null : OutputFolder;
                         },
                         progress);
                     break;
@@ -206,6 +214,7 @@ public partial class DownloadViewModel : ObservableObject
                             opts.AllowFlac = AllowFlac;
                             opts.SkipResults = SkipExistingResults;
                             opts.SearchTimeout = SearchTimeout;
+                            opts.OutputDirectory = string.IsNullOrWhiteSpace(OutputFolder) ? null : OutputFolder;
                         },
                         progress);
                     break;

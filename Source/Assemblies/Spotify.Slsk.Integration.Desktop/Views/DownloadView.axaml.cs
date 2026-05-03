@@ -34,4 +34,21 @@ public partial class DownloadView : UserControl
             vm.SetAppleMusicXmlPath(files[0].Path.LocalPath);
         }
     }
+
+    private async void BrowseOutputFolder_Click(object? sender, RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+
+        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Select Output Folder",
+            AllowMultiple = false
+        });
+
+        if (folders.Count > 0 && DataContext is DownloadViewModel vm)
+        {
+            vm.SetOutputFolder(folders[0].Path.LocalPath);
+        }
+    }
 }

@@ -29,6 +29,9 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
         [Option(CommandOptionType.SingleValue, ShortName = "p", LongName = "sspassword", Description = "Soulseek login password", ValueName = "login password", ShowInHelpText = true)]
         public string SSPassword { get; set; }
 
+        [Option(CommandOptionType.SingleValue, ShortName = "o", LongName = "output", Description = "Directory where downloaded files will be saved", ValueName = "output directory", ShowInHelpText = true)]
+        public string OutputDirectory { get; set; }
+
         [Option(CommandOptionType.NoValue, ShortName = "s", LongName = "skip-results", Description = "Skip tracks already present in results folder", ValueName = "skip present results", ShowInHelpText = true)]
         public bool SkipPresentResults { get; }
 
@@ -107,6 +110,7 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
                         options.AllowFlac = AllowFlac;
                         options.SkipResults = SkipPresentResults;
                         options.SearchTimeout = SearchTimeout.Value;
+                        options.OutputDirectory = string.IsNullOrWhiteSpace(OutputDirectory) ? null : OutputDirectory;
                     });
 
                 return 0;

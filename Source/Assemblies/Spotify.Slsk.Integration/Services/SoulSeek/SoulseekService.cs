@@ -97,7 +97,7 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
 
             if (RESULTS_DIRECTORY == default)
             {
-                CreateResultsDirectories(folderName);
+                CreateResultsDirectories(folderName, options.OutputDirectory);
             }
 
             if (options.SkipResults)
@@ -326,14 +326,13 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
             return result;
         }
 
-        private static void CreateResultsDirectories(string? folderName = null)
+        private static void CreateResultsDirectories(string? folderName = null, string? outputDirectory = null)
         {
-            RESULTS_DIRECTORY = Path.Combine(CURRENT_DIRECTORY, "Results");
+            string baseDir = string.IsNullOrEmpty(outputDirectory)
+                ? Path.Combine(CURRENT_DIRECTORY, "Results")
+                : outputDirectory;
 
-            if (folderName != null)
-            {
-                RESULTS_DIRECTORY = Path.Combine(RESULTS_DIRECTORY, folderName);
-            }
+            RESULTS_DIRECTORY = folderName != null ? Path.Combine(baseDir, folderName) : baseDir;
 
             TRACKS_DIRECTORY = Path.Combine(RESULTS_DIRECTORY, "Tracks");
 

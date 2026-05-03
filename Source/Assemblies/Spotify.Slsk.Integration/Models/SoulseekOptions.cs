@@ -5,5 +5,6 @@ namespace Spotify.Slsk.Integration.Models
         public bool AllowFlac { get; set; }
         public bool SkipResults { get; set; }
         public int SearchTimeout { get; set; } = 10;
+        public string? OutputDirectory { get; set; }
     }
 }

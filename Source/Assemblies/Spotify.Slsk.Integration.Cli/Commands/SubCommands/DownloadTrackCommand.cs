@@ -22,6 +22,9 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
         [Option(CommandOptionType.SingleValue, ShortName = "q", LongName = "query", Description = "search query for soulseek", ValueName = "search query", ShowInHelpText = true)]
         public string SearchQuery { get; set; }
 
+        [Option(CommandOptionType.SingleValue, ShortName = "o", LongName = "output", Description = "directory where downloaded files will be saved", ValueName = "output directory", ShowInHelpText = true)]
+        public string OutputDirectory { get; set; }
+
         public DownloadTrackCommand(ILogger<DownloadTrackCommand> logger, IConsole console)
         {
             _logger = logger;
@@ -68,7 +71,10 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
                     Query = SearchQuery
                 };
 
-                SoulseekResult result = await SoulseekService.GetTrackAsync(_soulseekClient, trackToDownload, SSUsername, SSPassword, new SoulseekOptions());
+                SoulseekResult result = await SoulseekService.GetTrackAsync(_soulseekClient, trackToDownload, SSUsername, SSPassword, new SoulseekOptions
+                {
+                    OutputDirectory = string.IsNullOrWhiteSpace(OutputDirectory) ? null : OutputDirectory
+                });
                 bool success = result.Success;
 
                 if (success)

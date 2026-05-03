@@ -38,6 +38,9 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
         [Option(CommandOptionType.SingleValue, ShortName = "k", LongName = "keyformat", Description = "desired  format for id3tag 'InitialKey'", ValueName = "desired  format for id3tag 'InitialKey'", ShowInHelpText = true)]
         public string DesiredKeyFormat { get; set; } = MusicalKeyFormat.OpenKey.Value;
 
+        [Option(CommandOptionType.SingleValue, ShortName = "o", LongName = "output", Description = "directory where downloaded files will be saved", ValueName = "output directory", ShowInHelpText = true)]
+        public string OutputDirectory { get; set; }
+
         [Option(CommandOptionType.NoValue, ShortName = "s", LongName = "skip-results", Description = "skip tracks that are present in results folder", ValueName = "skip present results", ShowInHelpText = true)]
         public bool SkipPresentResults { get; }
 
@@ -122,6 +125,7 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
                     options.AllowFlac = AllowFlac;
                     options.SkipResults = SkipPresentResults;
                     options.SearchTimeout = SearchTimeout.Value;
+                    options.OutputDirectory = string.IsNullOrWhiteSpace(OutputDirectory) ? null : OutputDirectory;
                 });
 
                 return 0;
