@@ -33,13 +33,13 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
             SSUsername = ResolveCredential(SSUsername, "SOULSEEK_USERNAME");
             if (string.IsNullOrEmpty(SSUsername))
             {
-                SSUsername = Prompt.GetString("Soulseek user name:", SSUsername);
+                SSUsername = UserProfile?.Username ?? Prompt.GetString("Soulseek user name:", SSUsername);
             }
 
             SSPassword = ResolveCredential(SSPassword, "SOULSEEK_PASSWORD");
             if (string.IsNullOrEmpty(SSPassword))
             {
-                SSPassword = SecureStringToString(Prompt.GetPasswordAsSecureString("Soulseek password:"));
+                SSPassword = UserProfile?.Password ?? SecureStringToString(Prompt.GetPasswordAsSecureString("Soulseek password:"));
             }
 
             if (string.IsNullOrEmpty(SearchQuery))
