@@ -18,6 +18,9 @@
 #   GOOGLE_CREDS_PATH
 #   SOULSEEK_USERNAME
 #   SOULSEEK_PASSWORD
+#
+# Optional:
+#   CLI_PATH   – override the CLI binary path (auto-detected by platform if unset)
 
 set -euo pipefail
 
@@ -36,8 +39,26 @@ for var in GOOGLE_SHEET_ID GOOGLE_CREDS_PATH SOULSEEK_USERNAME SOULSEEK_PASSWORD
     fi
 done
 
+# Auto-detect CLI binary path by platform if not explicitly set
+if [[ -z "${CLI_PATH:-}" ]]; then
+    case "$(uname -s)-$(uname -m)" in
+        Darwin-arm64)  CLI_PATH="$REPO_ROOT/dist/cli/osx-arm64/Spotify.Slsk.Integration.Cli" ;;
+        Darwin-x86_64) CLI_PATH="$REPO_ROOT/dist/cli/osx-x64/Spotify.Slsk.Integration.Cli" ;;
+        Linux-aarch64) CLI_PATH="$REPO_ROOT/dist/cli/linux-arm64/Spotify.Slsk.Integration.Cli" ;;
+        *)             CLI_PATH="$REPO_ROOT/dist/cli/linux-x64/Spotify.Slsk.Integration.Cli" ;;
+    esac
+fi
+
+echo "Using CLI binary: $CLI_PATH"
+
+if [[ ! -f "$CLI_PATH" ]]; then
+    echo "Error: CLI binary not found at $CLI_PATH" >&2
+    echo "Run ./scripts/publish-cli.sh first." >&2
+    exit 1
+fi
+
 # Build the cron line: every Monday at 09:00
-CRON_LINE="0 9 * * 1 GOOGLE_SHEET_ID=$GOOGLE_SHEET_ID GOOGLE_CREDS_PATH=$GOOGLE_CREDS_PATH SOULSEEK_USERNAME=$SOULSEEK_USERNAME SOULSEEK_PASSWORD=$SOULSEEK_PASSWORD $PYTHON $PROCESSOR >> $LOG_FILE 2>&1 $CRON_TAG"
+CRON_LINE="0 9 * * 1 GOOGLE_SHEET_ID=$GOOGLE_SHEET_ID GOOGLE_CREDS_PATH=$GOOGLE_CREDS_PATH SOULSEEK_USERNAME=$SOULSEEK_USERNAME SOULSEEK_PASSWORD=$SOULSEEK_PASSWORD CLI_PATH=$CLI_PATH $PYTHON $PROCESSOR >> $LOG_FILE 2>&1 $CRON_TAG"
 
 # Remove any existing entry with this tag, then append the new one
 ( crontab -l 2>/dev/null | grep -v "$CRON_TAG"; echo "$CRON_LINE" ) | crontab -
