@@ -53,7 +53,9 @@ namespace Spotify.Slsk.Integration.Cli.Commands
             {
                 if (_userProfile == null)
                 {
-                    var text = System.IO.File.ReadAllText($"{ProfileFolder}{Profile}");
+                    var profilePath = $"{ProfileFolder}{Profile}";
+                    if (!System.IO.File.Exists(profilePath)) return null;
+                    var text = System.IO.File.ReadAllText(profilePath);
                     if (!string.IsNullOrEmpty(text))
                     {
                         _userProfile = JsonSerializer.Deserialize<UserProfile>(text);

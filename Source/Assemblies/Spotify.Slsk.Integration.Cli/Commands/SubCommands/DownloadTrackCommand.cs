@@ -32,12 +32,12 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
         {
             if (string.IsNullOrEmpty(SSUsername))
             {
-                SSUsername = Prompt.GetString("Soulseek user name:", SSUsername);
+                SSUsername = UserProfile?.Username ?? Prompt.GetString("Soulseek user name:", SSUsername);
             }
 
             if (string.IsNullOrEmpty(SSPassword))
             {
-                SSPassword = SecureStringToString(Prompt.GetPasswordAsSecureString("Soulseek password:"));
+                SSPassword = UserProfile?.Password ?? SecureStringToString(Prompt.GetPasswordAsSecureString("Soulseek password:"));
             }
 
             if (string.IsNullOrEmpty(SearchQuery))
