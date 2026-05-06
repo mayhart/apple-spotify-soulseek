@@ -1,40 +1,22 @@
 #!/usr/bin/env bash
-# ============================================================================
-# publish-cli.sh — Publish Spotseek CLI as a self-contained executable
-# ============================================================================
-# Usage:
-#   chmod +x scripts/publish-cli.sh
-#   ./scripts/publish-cli.sh
-#
-# Output:
-#   dist/cli/osx-arm64/Spotify.Slsk.Integration.Cli   (macOS Apple Silicon)
-#   dist/cli/linux-arm64/Spotify.Slsk.Integration.Cli  (Linux aarch64, for cowork)
-# ============================================================================
+# Publishes the Spotseek CLI as a self-contained binary for Linux.
+# Output: dist/cli/linux-x64/Spotify.Slsk.Integration.Cli
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 PROJECT="$REPO_ROOT/Source/Assemblies/Spotify.Slsk.Integration.Cli/Spotify.Slsk.Integration.Cli.csproj"
+OUTPUT_DIR="$REPO_ROOT/dist/cli/linux-x64"
 
-publish() {
-    local RID="$1"
-    local OUT="$REPO_ROOT/dist/cli/$RID"
-    echo "Publishing for $RID..."
-    rm -rf "$OUT"
-    mkdir -p "$OUT"
-    dotnet publish "$PROJECT" \
-        -r "$RID" \
-        -c Release \
-        --self-contained true \
-        -p:PublishSingleFile=true \
-        -o "$OUT"
-    chmod +x "$OUT/Spotify.Slsk.Integration.Cli"
-    echo "  -> $OUT/Spotify.Slsk.Integration.Cli"
-}
+echo "Publishing Spotseek CLI for linux-x64..."
+dotnet publish "$PROJECT" \
+    -r linux-x64 \
+    -c Release \
+    --self-contained true \
+    -p:PublishSingleFile=true \
+    -p:IncludeNativeLibrariesForSelfExtract=true \
+    -o "$OUTPUT_DIR"
 
-publish "osx-arm64"
-publish "linux-arm64"
-publish "linux-x64"
-
-echo "Done."
+chmod +x "$OUTPUT_DIR/Spotify.Slsk.Integration.Cli"
+echo "Done: $OUTPUT_DIR/Spotify.Slsk.Integration.Cli"

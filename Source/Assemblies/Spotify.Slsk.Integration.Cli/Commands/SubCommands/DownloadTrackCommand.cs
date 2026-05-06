@@ -30,11 +30,13 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
 
         protected override async Task<int> OnExecute(CommandLineApplication app)
         {
+            SSUsername = ResolveCredential(SSUsername, "SOULSEEK_USERNAME");
             if (string.IsNullOrEmpty(SSUsername))
             {
                 SSUsername = UserProfile?.Username ?? Prompt.GetString("Soulseek user name:", SSUsername);
             }
 
+            SSPassword = ResolveCredential(SSPassword, "SOULSEEK_PASSWORD");
             if (string.IsNullOrEmpty(SSPassword))
             {
                 SSPassword = UserProfile?.Password ?? SecureStringToString(Prompt.GetPasswordAsSecureString("Soulseek password:"));
