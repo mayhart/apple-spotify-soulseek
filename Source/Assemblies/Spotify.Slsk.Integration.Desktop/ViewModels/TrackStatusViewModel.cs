@@ -14,6 +14,7 @@ public partial class TrackStatusViewModel : ObservableObject
         DownloadStatus.Queued => "Queued",
         DownloadStatus.Downloading => "Downloading...",
         DownloadStatus.Success => "Done",
+        DownloadStatus.Skipped => "Already downloaded",
         DownloadStatus.Failed => $"Failed: {FailReason}",
         _ => string.Empty
     };

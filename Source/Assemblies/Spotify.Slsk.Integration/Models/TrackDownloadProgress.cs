@@ -5,6 +5,7 @@ namespace Spotify.Slsk.Integration.Models
         Queued,
         Downloading,
         Success,
+        Skipped,
         Failed
     }
 
