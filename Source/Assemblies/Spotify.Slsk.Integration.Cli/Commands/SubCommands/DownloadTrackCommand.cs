@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Spotify.Slsk.Integration.Extensions;
 using Spotify.Slsk.Integration.Models;
 using Spotify.Slsk.Integration.Services.SoulSeek;
 using McMaster.Extensions.CommandLineUtils;
@@ -65,7 +66,7 @@ namespace Spotify.Slsk.Integration.Cli.Commands.SubCommands
 
                 TrackToDownload trackToDownload = new()
                 {
-                    Query = SearchQuery
+                    Query = SearchQuery.NormalizeForSearch()
                 };
 
                 SoulseekResult result = await SoulseekService.GetTrackAsync(_soulseekClient, trackToDownload, SSUsername, SSPassword, new SoulseekOptions());

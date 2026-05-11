@@ -164,6 +164,8 @@ namespace Spotify.Slsk.Integration.Services.Download
                         var result = await SoulseekService.GetTrackAsync(SoulseekClient, trackToDownload, ssUsername, ssPassword, options, playlist.Name);
                         if (result.Success)
                             progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Success });
+                        else if (result.Skipped)
+                            progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Skipped });
                         else
                             progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Failed, FailReason = "No match found" });
                         Log.Information($"Downloads remaining: '{tracksToDownload.Count - (tracksToDownload.IndexOf(trackToDownload) + 1)}'");
@@ -228,6 +230,8 @@ namespace Spotify.Slsk.Integration.Services.Download
 
             if (result.Success)
                 progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Success });
+            else if (result.Skipped)
+                progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Skipped });
             else if (result.FilePath == null)
                 progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Failed, FailReason = "No match found" });
 
@@ -250,13 +254,13 @@ namespace Spotify.Slsk.Integration.Services.Download
         public static string GetQueryForSpotifyTrack(TrackItem trackItem)
         {
             string queryRaw = $"{trackItem.Track!.Name} {trackItem.Track.Artists![0].Name}";
-            return queryRaw.RemoveSpecialCharacters();
+            return queryRaw.NormalizeForSearch();
         }
 
         public static string GetQueryForAppleMusicTrack(AppleMusicTrack track)
         {
             string queryRaw = $"{track.Name} {track.Artist}";
-            return queryRaw.RemoveSpecialCharacters();
+            return queryRaw.NormalizeForSearch();
         }
 
         private static string GetDesiredFileNameForAppleMusicTrack(AppleMusicTrack track)
