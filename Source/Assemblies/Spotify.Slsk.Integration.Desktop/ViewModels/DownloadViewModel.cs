@@ -16,9 +16,10 @@ namespace Spotify.Slsk.Integration.Desktop.ViewModels;
 
 public enum DownloadSource { SpotifyPlaylist, SpotifyTrack, AppleMusicPlaylist }
 
-public partial class DownloadViewModel : ObservableObject
+public partial class DownloadViewModel : ObservableObject, IDisposable
 {
     private readonly SettingsService _settingsService;
+    private readonly DownloadService _downloadService;
     private CancellationTokenSource? _cts;
 
     // ── Source ────────────────────────────────────────────────────────────────
@@ -95,7 +96,14 @@ public partial class DownloadViewModel : ObservableObject
     public DownloadViewModel(SettingsService settingsService)
     {
         _settingsService = settingsService;
+        _downloadService = new DownloadService();
         LoadFromSettings();
+    }
+
+    public void Dispose()
+    {
+        _downloadService.Dispose();
+        _cts?.Dispose();
     }
 
     private void LoadFromSettings()
@@ -170,13 +178,12 @@ public partial class DownloadViewModel : ObservableObject
 
         try
         {
-            var downloadService = new DownloadService();
             MusicalKeyFormat keyFormat = MusicalKeyFormat.from(SelectedKeyFormat);
 
             switch (SelectedSource)
             {
                 case DownloadSource.SpotifyPlaylist:
-                    await downloadService.DownloadAllPlaylistTracksFromUserAsync(
+                    await _downloadService.DownloadAllPlaylistTracksFromUserAsync(
                         SpotifyUserId,
                         string.IsNullOrWhiteSpace(SpotifyPlaylistId) ? null : SpotifyPlaylistId,
                         string.IsNullOrWhiteSpace(SpotifyPlaylistName) ? null : SpotifyPlaylistName,
@@ -195,7 +202,7 @@ public partial class DownloadViewModel : ObservableObject
                     break;
 
                 case DownloadSource.AppleMusicPlaylist:
-                    await downloadService.DownloadAppleMusicPlaylistAsync(
+                    await _downloadService.DownloadAppleMusicPlaylistAsync(
                         AppleMusicXmlPath,
                         string.IsNullOrWhiteSpace(AppleMusicPlaylistId) ? null : AppleMusicPlaylistId,
                         string.IsNullOrWhiteSpace(AppleMusicPlaylistName) ? null : AppleMusicPlaylistName,
