@@ -22,6 +22,7 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
         private static string TRACKS_DIRECTORY { get; set; } = default!;
         private static ConcurrentDictionary<string, (bool Success, FailedDownloadReason? Reason)> DownloadResults { get; } = new();
         private static HashSet<string> PreviouslyProcessed { get; } = new(StringComparer.OrdinalIgnoreCase);
+        private static ConcurrentBag<string> SkippedResults { get; } = new();
 
         private static ConcurrentDictionary<(string Username, string Filename, int Token), (TransferStates State, string desiredFileName, int index)> Downloads { get; set; }
             = new ConcurrentDictionary<(string Username, string Filename, int Token), (TransferStates State, string desiredFileName, int index)>();
@@ -105,6 +106,8 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
                 if (IsResultFilePresent(trackToDownload.Query!))
                 {
                     Log.Information($"track with query '{trackToDownload.Query}' already processed before, skipping...");
+                    SkippedResults.Add(trackToDownload.Query!);
+                    result.Skipped = true;
                     return result;
                 }
             }
@@ -350,13 +353,13 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
             string mdPath = Path.Combine(RESULTS_DIRECTORY, "results.md");
             if (!System.IO.File.Exists(mdPath)) return;
 
+            bool inSucceededSection = false;
             foreach (string line in System.IO.File.ReadAllLines(mdPath))
             {
-                if (!line.StartsWith("- ")) continue;
-                string entry = line[2..];
-                int parenIdx = entry.LastIndexOf(" (");
-                if (parenIdx >= 0) entry = entry[..parenIdx];
-                PreviouslyProcessed.Add(entry.Trim());
+                if (line == "## Succeeded") { inSucceededSection = true; continue; }
+                if (line.StartsWith("## ")) { inSucceededSection = false; continue; }
+                if (inSucceededSection && line.StartsWith("- "))
+                    PreviouslyProcessed.Add(line[2..].Trim());
             }
         }
 
@@ -385,11 +388,14 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
                 .Where(r => r.Value.Success).Select(r => r.Key).OrderBy(q => q).ToList();
             List<(string Query, FailedDownloadReason? Reason)> failed = DownloadResults
                 .Where(r => !r.Value.Success).Select(r => (Query: r.Key, r.Value.Reason)).OrderBy(r => r.Query).ToList();
+            List<string> skipped = SkippedResults.OrderBy(q => q).ToList();
+
+            int total = DownloadResults.Count + skipped.Count;
 
             StringBuilder sb = new();
             sb.AppendLine("# Download Results");
             sb.AppendLine();
-            sb.AppendLine($"**Total:** {DownloadResults.Count} | **Succeeded:** {succeeded.Count} | **Failed:** {failed.Count}");
+            sb.AppendLine($"**Total:** {total} | **Succeeded:** {succeeded.Count} | **Failed:** {failed.Count} | **Skipped:** {skipped.Count}");
             sb.AppendLine();
             sb.AppendLine("## Succeeded");
             foreach (string q in succeeded)
@@ -398,6 +404,10 @@ namespace Spotify.Slsk.Integration.Services.SoulSeek
             sb.AppendLine("## Failed");
             foreach ((string q, FailedDownloadReason? reason) in failed)
                 sb.AppendLine($"- {q} ({reason})");
+            sb.AppendLine();
+            sb.AppendLine("## Skipped (already downloaded)");
+            foreach (string q in skipped)
+                sb.AppendLine($"- {q}");
 
             string mdPath = Path.Combine(RESULTS_DIRECTORY, "results.md");
             System.IO.File.WriteAllText(mdPath, sb.ToString());

@@ -22,6 +22,28 @@ namespace Spotify.Slsk.Integration.Extensions
             return sb.ToString();
         }
 
+        public static string NormalizeForSearch(this string str)
+        {
+            // Remove parenthetical/bracketed content — feat. tags, remix info, radio edits, etc.
+            str = Regex.Replace(str, @"\(.*?\)", " ");
+            str = Regex.Replace(str, @"\[.*?\]", " ");
+
+            // Remove featured artist mentions that appear outside brackets
+            str = Regex.Replace(str, @"\s*(feat\.?|ft\.?|featuring)\b.*$", " ", RegexOptions.IgnoreCase);
+
+            // Replace & with "and" so it survives ASCII stripping
+            str = str.Replace("&", " and ");
+
+            // Replace en/em dashes with spaces to avoid merging words
+            str = str.Replace("–", " ").Replace("—", " ");
+
+            // Strip diacritics and non-ASCII special characters
+            str = str.RemoveSpecialCharacters();
+
+            // Collapse runs of whitespace
+            return Regex.Replace(str, @"\s+", " ").Trim();
+        }
+
         public static string ToLocalOSPath(this string path)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
