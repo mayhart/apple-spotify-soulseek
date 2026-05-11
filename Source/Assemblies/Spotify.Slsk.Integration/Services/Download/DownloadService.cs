@@ -161,8 +161,11 @@ namespace Spotify.Slsk.Integration.Services.Download
                     try
                     {
                         progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Downloading });
-                        await SoulseekService.GetTrackAsync(SoulseekClient, trackToDownload, ssUsername, ssPassword, options, playlist.Name);
-                        progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Success });
+                        var result = await SoulseekService.GetTrackAsync(SoulseekClient, trackToDownload, ssUsername, ssPassword, options, playlist.Name);
+                        if (result.Success)
+                            progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Success });
+                        else
+                            progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Failed, FailReason = "No match found" });
                         Log.Information($"Downloads remaining: '{tracksToDownload.Count - (tracksToDownload.IndexOf(trackToDownload) + 1)}'");
                     }
                     catch (Exception e)
@@ -224,9 +227,9 @@ namespace Spotify.Slsk.Integration.Services.Download
             }
 
             if (result.Success)
-            {
                 progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Success });
-            }
+            else if (result.FilePath == null)
+                progress?.Report(new TrackDownloadProgress { TrackName = trackToDownload.Query, Status = DownloadStatus.Failed, FailReason = "No match found" });
 
             if (result.Success && save)
             {
