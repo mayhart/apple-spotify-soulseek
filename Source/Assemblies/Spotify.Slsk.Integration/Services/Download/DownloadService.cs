@@ -9,6 +9,7 @@ using Spotify.Slsk.Integration.Services.Id3Tag;
 using Spotify.Slsk.Integration.Services.SoulSeek;
 using Serilog;
 using Soulseek;
+using System.Linq;
 
 namespace Spotify.Slsk.Integration.Services.Download
 {
@@ -253,7 +254,8 @@ namespace Spotify.Slsk.Integration.Services.Download
 
         public static string GetQueryForSpotifyTrack(TrackItem trackItem)
         {
-            string queryRaw = $"{trackItem.Track!.Name} {trackItem.Track.Artists![0].Name}";
+            string artists = string.Join(" ", trackItem.Track!.Artists!.Select(a => a.Name));
+            string queryRaw = $"{trackItem.Track!.Name} {artists}";
             return queryRaw.NormalizeForSearch();
         }
 
