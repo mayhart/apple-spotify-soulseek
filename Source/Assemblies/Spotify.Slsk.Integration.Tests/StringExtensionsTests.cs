@@ -11,9 +11,26 @@ public class StringExtensionsTests
     [InlineData("", "")]
     [InlineData("abc 123", "abc 123")]
     [InlineData("!@#$%^&*()", "")]
+    [InlineData("can't", "can't")]
+    [InlineData("it's alright", "it's alright")]
     public void RemoveSpecialCharacters_ReturnsOnlyAllowedChars(string input, string expected)
     {
         var result = input.RemoveSpecialCharacters();
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("Can't Stop the Feeling Justin Timberlake", "Can't Stop the Feeling Justin Timberlake")]
+    [InlineData("Song (feat. Artist2)", "Song Artist2")]
+    [InlineData("Song [feat. Artist2]", "Song Artist2")]
+    [InlineData("Song feat. Artist2", "Song Artist2")]
+    [InlineData("Song ft. Artist2", "Song Artist2")]
+    [InlineData("Song featuring Artist2", "Song Artist2")]
+    [InlineData("Song (Remastered 2011)", "Song Remastered 2011")]
+    [InlineData("Café (feat. Artíst)", "Cafe Artist")]
+    public void NormalizeForSearch_HandlesContrationsAndFeatures(string input, string expected)
+    {
+        var result = input.NormalizeForSearch();
         Assert.Equal(expected, result);
     }
 

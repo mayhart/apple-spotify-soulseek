@@ -14,7 +14,7 @@ namespace Spotify.Slsk.Integration.Extensions
             foreach (char c in normalized)
             {
                 if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
-                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == ' ' || c == '-' || c == '_')
+                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == ' ' || c == '-' || c == '_' || c == '\'')
                 {
                     sb.Append(c);
                 }
@@ -24,12 +24,12 @@ namespace Spotify.Slsk.Integration.Extensions
 
         public static string NormalizeForSearch(this string str)
         {
-            // Remove parenthetical/bracketed content — feat. tags, remix info, radio edits, etc.
-            str = Regex.Replace(str, @"\(.*?\)", " ");
-            str = Regex.Replace(str, @"\[.*?\]", " ");
+            // Extract featured artist names from parentheses/brackets before stripping all bracket content
+            str = Regex.Replace(str, @"\((featuring|feat\.|feat|ft\.|ft)\s+([^)]+)\)", "$2", RegexOptions.IgnoreCase);
+            str = Regex.Replace(str, @"\[(featuring|feat\.|feat|ft\.|ft)\s+([^\]]+)\]", "$2", RegexOptions.IgnoreCase);
 
-            // Remove featured artist mentions that appear outside brackets
-            str = Regex.Replace(str, @"\s*(feat\.?|ft\.?|featuring)\b.*$", " ", RegexOptions.IgnoreCase);
+            // Strip featured artist connector words outside brackets, keeping the artist names
+            str = Regex.Replace(str, @"\s*(featuring|feat\.|feat|ft\.|ft)\s*", " ", RegexOptions.IgnoreCase);
 
             // Replace & with "and" so it survives ASCII stripping
             str = str.Replace("&", " and ");
