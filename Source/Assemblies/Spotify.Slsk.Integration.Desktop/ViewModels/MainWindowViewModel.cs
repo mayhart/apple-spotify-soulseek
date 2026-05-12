@@ -3,7 +3,7 @@ using Spotify.Slsk.Integration.Desktop.Services;
 
 namespace Spotify.Slsk.Integration.Desktop.ViewModels;
 
-public partial class MainWindowViewModel : ObservableObject
+public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     public SettingsViewModel SettingsViewModel { get; }
     public DownloadViewModel DownloadViewModel { get; }
@@ -14,4 +14,6 @@ public partial class MainWindowViewModel : ObservableObject
         SettingsViewModel = new SettingsViewModel(settingsService);
         DownloadViewModel = new DownloadViewModel(settingsService);
     }
+
+    public void Dispose() => DownloadViewModel.Dispose();
 }
