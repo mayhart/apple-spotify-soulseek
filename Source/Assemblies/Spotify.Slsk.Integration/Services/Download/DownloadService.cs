@@ -12,7 +12,7 @@ using Soulseek;
 
 namespace Spotify.Slsk.Integration.Services.Download
 {
-    public class DownloadService
+    public class DownloadService : IDisposable
     {
         private SpotifyClient SpotifyClient { get; } = new();
         private SoulseekClient SoulseekClient { get; }
@@ -20,6 +20,11 @@ namespace Spotify.Slsk.Integration.Services.Download
         public DownloadService()
         {
             SoulseekClient = SoulseekService.GetClient();
+        }
+
+        public void Dispose()
+        {
+            SoulseekClient.Dispose();
         }
 
         // ── Spotify methods ────────────────────────────────────────────────────

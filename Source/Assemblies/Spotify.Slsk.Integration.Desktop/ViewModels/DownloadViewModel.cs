@@ -170,7 +170,7 @@ public partial class DownloadViewModel : ObservableObject
 
         try
         {
-            var downloadService = new DownloadService();
+            using var downloadService = new DownloadService();
             MusicalKeyFormat keyFormat = MusicalKeyFormat.from(SelectedKeyFormat);
 
             switch (SelectedSource)
