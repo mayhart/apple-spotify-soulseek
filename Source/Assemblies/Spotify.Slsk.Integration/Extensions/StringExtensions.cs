@@ -31,8 +31,8 @@ namespace Spotify.Slsk.Integration.Extensions
             // Strip featured artist connector words outside brackets, keeping the artist names
             str = Regex.Replace(str, @"\s*(featuring|feat\.|feat|ft\.|ft)\s*", " ", RegexOptions.IgnoreCase);
 
-            // Replace & with "and" so it survives ASCII stripping
-            str = str.Replace("&", " and ");
+            // Replace & with a space (expanding to "and" causes poor Soulseek search matches)
+            str = str.Replace("&", " ");
 
             // Replace en/em dashes with spaces to avoid merging words
             str = str.Replace("–", " ").Replace("—", " ");
