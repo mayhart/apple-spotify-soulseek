@@ -44,3 +44,4 @@ appsettings.*.json
 # Test results
 TestResults/
 coverage/
+dist/
